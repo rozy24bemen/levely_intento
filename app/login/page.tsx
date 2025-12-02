@@ -1,8 +1,8 @@
 'use client'
 
 import { createClient } from '@/lib/supabase/browserClient'
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { CheckCircle, AlertCircle, Loader2 } from 'lucide-react'
 
 export default function LoginPage() {
@@ -14,7 +14,16 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
   const router = useRouter()
+  const searchParams = useSearchParams()
   const supabase = createClient()
+
+  // Detectar errores de confirmación en la URL
+  useEffect(() => {
+    const errorParam = searchParams.get('error')
+    if (errorParam === 'confirmation_failed') {
+      setError('Hubo un problema al confirmar tu cuenta. El enlace puede haber expirado. Intenta iniciar sesión o regístrate nuevamente.')
+    }
+  }, [searchParams])
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault()

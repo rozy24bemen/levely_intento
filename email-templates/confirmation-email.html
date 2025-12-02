@@ -1,0 +1,113 @@
+<!-- LEVELY Email Confirmation Template -->
+<!-- Copia este código en Supabase Dashboard → Authentication → Email Templates → Confirm signup -->
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Confirma tu cuenta en LEVELY</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f3f4f6;">
+    <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f3f4f6; padding: 40px 20px;">
+        <tr>
+            <td align="center">
+                <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 16px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); overflow: hidden;">
+                    <!-- Header con gradiente -->
+                    <tr>
+                        <td style="background: linear-gradient(135deg, #2563eb 0%, #9333ea 100%); padding: 40px 40px 30px; text-align: center;">
+                            <div style="width: 60px; height: 60px; background-color: rgba(255, 255, 255, 0.2); border-radius: 12px; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 16px;">
+                                <span style="color: #ffffff; font-size: 32px; font-weight: bold;">L</span>
+                            </div>
+                            <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: bold;">LEVELY</h1>
+                            <p style="margin: 8px 0 0; color: rgba(255, 255, 255, 0.9); font-size: 14px;">Tu red social con niveles</p>
+                        </td>
+                    </tr>
+                    
+                    <!-- Contenido principal -->
+                    <tr>
+                        <td style="padding: 40px;">
+                            <h2 style="margin: 0 0 16px; color: #111827; font-size: 24px; font-weight: bold;">¡Bienvenido a LEVELY! 🚀</h2>
+                            
+                            <p style="margin: 0 0 24px; color: #4b5563; font-size: 16px; line-height: 1.6;">
+                                Gracias por unirte a nuestra comunidad donde tu participación te hace crecer.
+                            </p>
+                            
+                            <p style="margin: 0 0 32px; color: #4b5563; font-size: 16px; line-height: 1.6;">
+                                Para activar tu cuenta y comenzar a compartir contenido, confirma tu email haciendo clic en el botón de abajo:
+                            </p>
+                            
+                            <!-- Botón de confirmación -->
+                            <table width="100%" cellpadding="0" cellspacing="0">
+                                <tr>
+                                    <td align="center" style="padding-bottom: 32px;">
+                                        <a href="{{ .ConfirmationURL }}" style="display: inline-block; padding: 16px 32px; background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); color: #ffffff; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px; box-shadow: 0 4px 6px rgba(37, 99, 235, 0.3);">
+                                            ✓ Confirmar mi cuenta
+                                        </a>
+                                    </td>
+                                </tr>
+                            </table>
+                            
+                            <!-- Link alternativo -->
+                            <div style="background-color: #f9fafb; border-radius: 8px; padding: 20px; margin-bottom: 24px;">
+                                <p style="margin: 0 0 8px; color: #6b7280; font-size: 14px; font-weight: 600;">
+                                    ¿El botón no funciona?
+                                </p>
+                                <p style="margin: 0; color: #6b7280; font-size: 13px; line-height: 1.5; word-break: break-all;">
+                                    Copia y pega este enlace en tu navegador:
+                                </p>
+                                <p style="margin: 8px 0 0; color: #2563eb; font-size: 13px; word-break: break-all;">
+                                    {{ .ConfirmationURL }}
+                                </p>
+                            </div>
+                            
+                            <!-- Advertencia de expiración -->
+                            <div style="background-color: #fef3c7; border-left: 4px solid #f59e0b; padding: 16px; border-radius: 4px; margin-bottom: 24px;">
+                                <p style="margin: 0; color: #92400e; font-size: 14px; line-height: 1.5;">
+                                    ⏱️ <strong>Este enlace expirará en 24 horas.</strong> Si no confirmas tu cuenta a tiempo, deberás registrarte nuevamente.
+                                </p>
+                            </div>
+                            
+                            <p style="margin: 0; color: #6b7280; font-size: 14px; line-height: 1.6;">
+                                Si no creaste esta cuenta, puedes ignorar este email de forma segura.
+                            </p>
+                        </td>
+                    </tr>
+                    
+                    <!-- Footer -->
+                    <tr>
+                        <td style="background-color: #f9fafb; padding: 24px 40px; border-top: 1px solid #e5e7eb;">
+                            <table width="100%" cellpadding="0" cellspacing="0">
+                                <tr>
+                                    <td align="center">
+                                        <p style="margin: 0 0 8px; color: #6b7280; font-size: 14px; font-weight: 600;">
+                                            LEVELY
+                                        </p>
+                                        <p style="margin: 0 0 16px; color: #9ca3af; font-size: 12px;">
+                                            Comparte, interactúa y crece en la comunidad
+                                        </p>
+                                        <a href="{{ .SiteURL }}" style="color: #2563eb; text-decoration: none; font-size: 13px; font-weight: 500;">
+                                            Visitar LEVELY →
+                                        </a>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                </table>
+                
+                <!-- Texto legal -->
+                <table width="600" cellpadding="0" cellspacing="0" style="margin-top: 20px;">
+                    <tr>
+                        <td align="center" style="padding: 0 20px;">
+                            <p style="margin: 0; color: #9ca3af; font-size: 12px; line-height: 1.5;">
+                                Este email fue enviado automáticamente. Por favor, no respondas a este mensaje.
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>

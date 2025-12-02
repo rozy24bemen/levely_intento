@@ -2,8 +2,14 @@ import { createClient } from '@/lib/supabase/serverClient'
 import PostCard from '@/components/PostCard'
 import CreatePostForm from '@/components/CreatePostForm'
 import type { Post } from '@/lib/types'
+import { CheckCircle } from 'lucide-react'
 
-export default async function Home() {
+type PageProps = {
+  searchParams: Promise<{ confirmed?: string }>
+}
+
+export default async function Home({ searchParams }: PageProps) {
+  const params = await searchParams
   const supabase = await createClient()
   
   const { data: { user } } = await supabase.auth.getUser()
@@ -40,6 +46,17 @@ export default async function Home() {
             <h1 className="text-4xl font-bold text-gray-900 mb-2">Bienvenido a LEVELY</h1>
             <p className="text-gray-600">Tu red social con niveles</p>
           </header>
+        )}
+
+        {/* Mensaje de confirmación exitosa */}
+        {params.confirmed === 'true' && user && (
+          <div className="mb-8 p-4 bg-green-50 border border-green-200 text-green-700 rounded-lg flex items-center gap-3">
+            <CheckCircle className="w-5 h-5 flex-shrink-0" />
+            <div>
+              <p className="font-semibold">¡Cuenta confirmada exitosamente!</p>
+              <p className="text-sm">Bienvenido a LEVELY. Ya puedes comenzar a publicar contenido.</p>
+            </div>
+          </div>
         )}
 
         {user && (
