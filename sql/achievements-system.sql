@@ -5,15 +5,22 @@
 -- PREDEFINED ACHIEVEMENTS
 -- ============================================
 
--- Clear existing achievements (optional, comment out if you want to keep existing)
--- DELETE FROM public.achievements;
+-- Use INSERT ... ON CONFLICT to update existing achievements or insert new ones
 
 -- Beginner Achievements
 INSERT INTO public.achievements (slug, title, description, xp_reward, icon, trigger_type, trigger_value)
 VALUES 
   ('first_post', '¡Primer Paso!', 'Publica tu primer post', 50, '📝', 'post_count', 1),
   ('profile_complete', 'Identificación Completa', 'Completa tu biografía', 25, '✨', 'profile_complete', 0),
-  ('first_like_received', 'Popular', 'Recibe tu primer like', 10, '❤️', 'like_received_count', 1);
+  ('first_like_received', 'Popular', 'Recibe tu primer like', 10, '❤️', 'like_received_count', 1)
+ON CONFLICT (slug) 
+DO UPDATE SET
+  title = EXCLUDED.title,
+  description = EXCLUDED.description,
+  xp_reward = EXCLUDED.xp_reward,
+  icon = EXCLUDED.icon,
+  trigger_type = EXCLUDED.trigger_type,
+  trigger_value = EXCLUDED.trigger_value;
 
 -- Post Milestones
 INSERT INTO public.achievements (slug, title, description, xp_reward, icon, trigger_type, trigger_value)
@@ -21,7 +28,15 @@ VALUES
   ('posts_10', 'Escritor Activo', 'Publica 10 posts', 100, '✍️', 'post_count', 10),
   ('posts_25', 'Creador de Contenido', 'Publica 25 posts', 200, '📚', 'post_count', 25),
   ('posts_50', 'Influencer', 'Publica 50 posts', 500, '🌟', 'post_count', 50),
-  ('posts_100', 'Leyenda de LEVELY', 'Publica 100 posts', 1000, '👑', 'post_count', 100);
+  ('posts_100', 'Leyenda de LEVELY', 'Publica 100 posts', 1000, '👑', 'post_count', 100)
+ON CONFLICT (slug) 
+DO UPDATE SET
+  title = EXCLUDED.title,
+  description = EXCLUDED.description,
+  xp_reward = EXCLUDED.xp_reward,
+  icon = EXCLUDED.icon,
+  trigger_type = EXCLUDED.trigger_type,
+  trigger_value = EXCLUDED.trigger_value;
 
 -- Like Milestones
 INSERT INTO public.achievements (slug, title, description, xp_reward, icon, trigger_type, trigger_value)
@@ -29,7 +44,15 @@ VALUES
   ('likes_10', 'Bien Recibido', 'Recibe 10 likes en total', 75, '💙', 'like_received_count', 10),
   ('likes_50', 'Muy Querido', 'Recibe 50 likes en total', 250, '💜', 'like_received_count', 50),
   ('likes_100', 'Estrella de la Comunidad', 'Recibe 100 likes en total', 500, '⭐', 'like_received_count', 100),
-  ('likes_500', 'Ídolo de LEVELY', 'Recibe 500 likes en total', 1500, '🏆', 'like_received_count', 500);
+  ('likes_500', 'Ídolo de LEVELY', 'Recibe 500 likes en total', 1500, '🏆', 'like_received_count', 500)
+ON CONFLICT (slug) 
+DO UPDATE SET
+  title = EXCLUDED.title,
+  description = EXCLUDED.description,
+  xp_reward = EXCLUDED.xp_reward,
+  icon = EXCLUDED.icon,
+  trigger_type = EXCLUDED.trigger_type,
+  trigger_value = EXCLUDED.trigger_value;
 
 -- Level Milestones
 INSERT INTO public.achievements (slug, title, description, xp_reward, icon, trigger_type, trigger_value)
@@ -37,14 +60,30 @@ VALUES
   ('level_5', 'Veterano', 'Alcanza nivel 5', 100, '🎖️', 'level', 5),
   ('level_10', 'Experto', 'Alcanza nivel 10', 300, '🥇', 'level', 10),
   ('level_25', 'Maestro', 'Alcanza nivel 25', 1000, '🎯', 'level', 25),
-  ('level_50', 'Legendario', 'Alcanza nivel 50', 2500, '💎', 'level', 50);
+  ('level_50', 'Legendario', 'Alcanza nivel 50', 2500, '💎', 'level', 50)
+ON CONFLICT (slug) 
+DO UPDATE SET
+  title = EXCLUDED.title,
+  description = EXCLUDED.description,
+  xp_reward = EXCLUDED.xp_reward,
+  icon = EXCLUDED.icon,
+  trigger_type = EXCLUDED.trigger_type,
+  trigger_value = EXCLUDED.trigger_value;
 
 -- Special Achievements
 INSERT INTO public.achievements (slug, title, description, xp_reward, icon, trigger_type, trigger_value)
 VALUES
   ('early_bird', 'Madrugador', 'Publica antes de las 6 AM', 50, '🌅', 'special', 0),
   ('night_owl', 'Noctámbulo', 'Publica después de las 12 AM', 50, '🌙', 'special', 0),
-  ('streak_7', 'Consistencia', 'Publica durante 7 días seguidos', 200, '🔥', 'streak', 7);
+  ('streak_7', 'Consistencia', 'Publica durante 7 días seguidos', 200, '🔥', 'streak', 7)
+ON CONFLICT (slug) 
+DO UPDATE SET
+  title = EXCLUDED.title,
+  description = EXCLUDED.description,
+  xp_reward = EXCLUDED.xp_reward,
+  icon = EXCLUDED.icon,
+  trigger_type = EXCLUDED.trigger_type,
+  trigger_value = EXCLUDED.trigger_value;
 
 -- ============================================
 -- FUNCTIONS FOR ACHIEVEMENT SYSTEM
