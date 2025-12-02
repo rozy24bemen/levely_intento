@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { createClient } from '@/lib/supabase/serverClient'
 import Navbar from '@/components/Navbar'
+import XPNotificationContainer from '@/components/XPNotifications'
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -44,6 +45,7 @@ export default async function RootLayout({
       >
         <Navbar user={user} profile={profile} />
         {children}
+        <XPNotificationContainer />
       </body>
     </html>
   );

@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/browserClient'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Send } from 'lucide-react'
+import { notifyXPGain } from './XPNotifications'
 
 export default function CreatePostForm({ userId }: { userId: string }) {
   const [content, setContent] = useState('')
@@ -26,6 +27,9 @@ export default function CreatePostForm({ userId }: { userId: string }) {
       })
 
       if (error) throw error
+
+      // Notificar ganancia de XP por crear post
+      notifyXPGain(10, 'Publicaste un post')
 
       setContent('')
       router.refresh()
