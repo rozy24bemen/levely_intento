@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/browserClient'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { CheckCircle, AlertCircle, Loader2 } from 'lucide-react'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
@@ -11,6 +12,7 @@ export default function LoginPage() {
   const [isSignUp, setIsSignUp] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [success, setSuccess] = useState<string | null>(null)
   const router = useRouter()
   const supabase = createClient()
 
@@ -18,9 +20,15 @@ export default function LoginPage() {
     e.preventDefault()
     setLoading(true)
     setError(null)
+    setSuccess(null)
 
     try {
       if (isSignUp) {
+        // Validar username
+        if (username.length < 3) {
+          throw new Error('El nombre de usuario debe tener al menos 3 caracteres')
+        }
+        
         const { error } = await supabase.auth.signUp({
           email,
           password,
@@ -31,18 +39,35 @@ export default function LoginPage() {
           },
         })
         if (error) throw error
-        alert('¡Registro exitoso! Revisa tu email para confirmar tu cuenta.')
+        
+        setSuccess('¡Registro exitoso! Revisa tu email para confirmar tu cuenta.')
+        // Limpiar formulario
+        setEmail('')
+        setPassword('')
+        setUsername('')
       } else {
         const { error } = await supabase.auth.signInWithPassword({
           email,
           password,
         })
         if (error) throw error
-        router.push('/')
-        router.refresh()
+        
+        setSuccess('¡Inicio de sesión exitoso! Redirigiendo...')
+        setTimeout(() => {
+          router.push('/')
+          router.refresh()
+        }, 1000)
       }
     } catch (err: any) {
-      setError(err.message)
+      // Mejorar mensajes de error
+      const errorMessages: { [key: string]: string } = {
+        'Invalid login credentials': 'Credenciales incorrectas. Verifica tu email y contraseña.',
+        'Email not confirmed': 'Debes confirmar tu email antes de iniciar sesión.',
+        'User already registered': 'Este email ya está registrado.',
+        'Password should be at least 6 characters': 'La contraseña debe tener al menos 6 caracteres.',
+      }
+      
+      setError(errorMessages[err.message] || err.message)
     } finally {
       setLoading(false)
     }
@@ -108,16 +133,25 @@ export default function LoginPage() {
           </div>
 
           {error && (
-            <div className="p-3 bg-red-50 text-red-600 text-sm rounded-lg">
-              {error}
+            <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg flex items-start gap-2">
+              <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+              <span>{error}</span>
+            </div>
+          )}
+
+          {success && (
+            <div className="p-3 bg-green-50 border border-green-200 text-green-700 text-sm rounded-lg flex items-start gap-2">
+              <CheckCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+              <span>{success}</span>
             </div>
           )}
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-2 px-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
+            className="w-full py-2 px-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition flex items-center justify-center gap-2"
           >
+            {loading && <Loader2 className="w-4 h-4 animate-spin" />}
             {loading ? 'Procesando...' : isSignUp ? 'Registrarse' : 'Iniciar Sesión'}
           </button>
         </form>
@@ -127,6 +161,7 @@ export default function LoginPage() {
             onClick={() => {
               setIsSignUp(!isSignUp)
               setError(null)
+              setSuccess(null)
             }}
             className="text-blue-600 hover:underline text-sm"
           >

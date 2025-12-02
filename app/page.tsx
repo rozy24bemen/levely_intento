@@ -35,10 +35,12 @@ export default async function Home() {
   return (
     <main className="min-h-screen bg-gray-50">
       <div className="mx-auto max-w-2xl px-4 py-8">
-        <header className="mb-8 text-center">
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">LEVELY</h1>
-          <p className="text-gray-600">Tu red social con niveles</p>
-        </header>
+        {!user && (
+          <header className="mb-8 text-center">
+            <h1 className="text-4xl font-bold text-gray-900 mb-2">Bienvenido a LEVELY</h1>
+            <p className="text-gray-600">Tu red social con niveles</p>
+          </header>
+        )}
 
         {user && (
           <div className="mb-8">
