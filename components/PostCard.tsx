@@ -3,20 +3,7 @@
 import { createClient } from '@/lib/supabase/browserClient'
 import { useState } from 'react'
 import { Heart } from 'lucide-react'
-
-type Post = {
-  id: string
-  content: string
-  created_at: string
-  likes_count: number
-  media_url: string | null
-  profiles: {
-    id: string
-    username: string
-    avatar_url: string | null
-    level: number
-  } | null
-}
+import type { Post } from '@/lib/types'
 
 export default function PostCard({ post, currentUserId }: { post: Post; currentUserId?: string }) {
   const [liked, setLiked] = useState(false)

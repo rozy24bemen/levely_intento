@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/serverClient'
 import PostCard from '@/components/PostCard'
 import CreatePostForm from '@/components/CreatePostForm'
+import type { Post } from '@/lib/types'
 
 export default async function Home() {
   const supabase = await createClient()
@@ -15,7 +16,7 @@ export default async function Home() {
       created_at,
       likes_count,
       media_url,
-      profiles (
+      profiles!posts_author_id_fkey (
         id,
         username,
         avatar_url,
@@ -65,7 +66,7 @@ export default async function Home() {
           )}
           
           {posts?.map((post) => (
-            <PostCard key={post.id} post={post} currentUserId={user?.id} />
+            <PostCard key={post.id} post={post as Post} currentUserId={user?.id} />
           ))}
         </div>
       </div>
