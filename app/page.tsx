@@ -8,7 +8,7 @@ export default async function Home() {
   
   const { data: { user } } = await supabase.auth.getUser()
   
-  const { data: posts, error } = await supabase
+  const { data: postsData, error } = await supabase
     .from('posts')
     .select(`
       id,
@@ -25,6 +25,12 @@ export default async function Home() {
     `)
     .order('created_at', { ascending: false })
     .limit(20)
+
+  // Transform the data to match our Post type (profiles is returned as array, we need object)
+  const posts = postsData?.map((post: any) => ({
+    ...post,
+    profiles: Array.isArray(post.profiles) ? post.profiles[0] : post.profiles
+  })) as Post[] | null
 
   return (
     <main className="min-h-screen bg-gray-50">
@@ -66,7 +72,7 @@ export default async function Home() {
           )}
           
           {posts?.map((post) => (
-            <PostCard key={post.id} post={post as Post} currentUserId={user?.id} />
+            <PostCard key={post.id} post={post} currentUserId={user?.id} />
           ))}
         </div>
       </div>
