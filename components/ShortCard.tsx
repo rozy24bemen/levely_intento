@@ -49,23 +49,30 @@ export default function ShortCard({ short, currentUserId, isActive }: ShortCardP
           .eq('short_id', short.id)
           .eq('user_id', currentUserId)
         
-        if (!error) {
-          setLiked(false)
-          setLikesCount(prev => prev - 1)
+        if (error) {
+          console.error('Error al quitar like:', error)
+          throw error
         }
+        
+        setLiked(false)
+        setLikesCount(prev => prev - 1)
       } else {
         // Like
         const { error } = await supabase
           .from('shorts_likes')
           .insert({ short_id: short.id, user_id: currentUserId })
         
-        if (!error) {
-          setLiked(true)
-          setLikesCount(prev => prev + 1)
+        if (error) {
+          console.error('Error al dar like:', error)
+          throw error
         }
+        
+        setLiked(true)
+        setLikesCount(prev => prev + 1)
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error toggling like:', error)
+      alert(`Error: ${error.message || 'No se pudo procesar el like'}`)
     } finally {
       setLoading(false)
     }
