@@ -8,6 +8,7 @@ import ImageModal from './ImageModal'
 import VideoModal from './VideoModal'
 import type { Post } from '@/lib/types'
 import Link from 'next/link'
+import Image from 'next/image'
 
 export default function PostCard({ post, currentUserId }: { post: Post; currentUserId?: string }) {
   const [liked, setLiked] = useState(false)
