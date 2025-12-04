@@ -1,7 +1,7 @@
 'use client'
 
 import { createClient } from '@/lib/supabase/browserClient'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Heart, MessageCircle, Play } from 'lucide-react'
 import CommentsList from './CommentsList'
 import ImageModal from './ImageModal'
@@ -18,6 +18,24 @@ export default function PostCard({ post, currentUserId }: { post: Post; currentU
   const [showVideoModal, setShowVideoModal] = useState(false)
   const [loading, setLoading] = useState(false)
   const supabase = createClient()
+
+  // Check if current user already liked this post
+  useEffect(() => {
+    const checkIfLiked = async () => {
+      if (!currentUserId) return
+      
+      const { data } = await supabase
+        .from('likes')
+        .select('id')
+        .eq('post_id', post.id)
+        .eq('user_id', currentUserId)
+        .single()
+      
+      setLiked(!!data)
+    }
+    
+    checkIfLiked()
+  }, [currentUserId, post.id, supabase])
 
   const handleLike = async () => {
     if (!currentUserId || loading) return

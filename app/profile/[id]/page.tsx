@@ -165,15 +165,6 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
           xp={profile.xp}
         />
 
-        {/* Achievements Section */}
-        <div className="mt-8">
-          <AchievementsGrid
-            achievements={achievementsWithStatus}
-            unlockedCount={achievementsCount || 0}
-            totalCount={allAchievements?.length || 0}
-          />
-        </div>
-
         {/* Posts and Shorts Section with Tabs */}
         <div className="mt-8">
           <ProfileContentTabs
@@ -183,6 +174,15 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
             shortsCount={shortsCount || 0}
             currentUserId={user?.id}
             isOwnProfile={isOwnProfile}
+          />
+        </div>
+
+        {/* Achievements Section */}
+        <div className="mt-8">
+          <AchievementsGrid
+            achievements={achievementsWithStatus}
+            unlockedCount={achievementsCount || 0}
+            totalCount={allAchievements?.length || 0}
           />
         </div>
       </div>
