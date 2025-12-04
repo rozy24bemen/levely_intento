@@ -1,7 +1,7 @@
 'use client'
 
 import { createClient } from '@/lib/supabase/browserClient'
-import { useRouter } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
 import { LogOut, Home, User, Zap } from 'lucide-react'
 import Link from 'next/link'
 
@@ -19,7 +19,13 @@ type NavbarProps = {
 
 export default function Navbar({ user, profile }: NavbarProps) {
   const router = useRouter()
+  const pathname = usePathname()
   const supabase = createClient()
+
+  // Hide navbar on Shorts page
+  if (pathname === '/shorts') {
+    return null
+  }
 
   const handleLogout = async () => {
     await supabase.auth.signOut()
