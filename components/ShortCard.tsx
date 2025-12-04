@@ -43,7 +43,8 @@ export default function ShortCard({ short, currentUserId, isActive }: ShortCardP
     try {
       if (liked) {
         // Unlike
-        const { error } = await supabase
+        console.log('Intentando quitar like:', { short_id: short.id, user_id: currentUserId })
+        const { error, data } = await supabase
           .from('shorts_likes')
           .delete()
           .eq('short_id', short.id)
@@ -51,28 +52,41 @@ export default function ShortCard({ short, currentUserId, isActive }: ShortCardP
         
         if (error) {
           console.error('Error al quitar like:', error)
+          alert(`Error al quitar like: ${error.message}`)
           throw error
         }
         
+        console.log('Like quitado exitosamente:', data)
         setLiked(false)
         setLikesCount(prev => prev - 1)
       } else {
         // Like
-        const { error } = await supabase
+        const likeData = { short_id: short.id, user_id: currentUserId }
+        console.log('Intentando dar like:', likeData)
+        console.log('Tipos:', {
+          short_id_type: typeof short.id,
+          user_id_type: typeof currentUserId,
+          short_id_value: short.id,
+          user_id_value: currentUserId
+        })
+        
+        const { error, data } = await supabase
           .from('shorts_likes')
-          .insert({ short_id: short.id, user_id: currentUserId })
+          .insert(likeData)
         
         if (error) {
-          console.error('Error al dar like:', error)
+          console.error('Error completo al dar like:', error)
+          console.error('Error details:', JSON.stringify(error, null, 2))
+          alert(`Error al dar like: ${error.message}\nCode: ${error.code}\nDetails: ${error.details}`)
           throw error
         }
         
+        console.log('Like dado exitosamente:', data)
         setLiked(true)
         setLikesCount(prev => prev + 1)
       }
     } catch (error: any) {
       console.error('Error toggling like:', error)
-      alert(`Error: ${error.message || 'No se pudo procesar el like'}`)
     } finally {
       setLoading(false)
     }
@@ -109,7 +123,7 @@ export default function ShortCard({ short, currentUserId, isActive }: ShortCardP
 
       {/* Author info (top left) */}
       <Link 
-        href={`/profile/${short.profiles?.id}`}
+        href={`/profile/${short.author_id}`}
         className="absolute top-4 left-4 flex items-center gap-3 hover:opacity-80 transition-opacity"
       >
         <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-600 rounded-full flex items-center justify-center text-white font-bold border-2 border-white shadow-lg">
