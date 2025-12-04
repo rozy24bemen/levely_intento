@@ -211,17 +211,16 @@ export default function ShortCard({ short, currentUserId, isActive }: ShortCardP
       {/* Comments overlay (if opened) */}
       {showComments && (
         <div 
-          className="absolute inset-0 bg-black/50 backdrop-blur-sm flex items-end z-50"
+          className="absolute inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50"
           onClick={() => setShowComments(false)}
         >
           <div 
-            className="w-full bg-white rounded-t-3xl p-6 max-h-[80vh] md:max-h-[75vh] flex flex-col pb-safe"
+            className="w-full max-w-2xl bg-white rounded-3xl p-6 max-h-[85vh] flex flex-col shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Close handle */}
-            <div className="flex items-center justify-between mb-4">
-              <div className="w-12 h-1.5 bg-gray-300 rounded-full" />
-              <h3 className="text-lg font-bold flex-1 text-center">
+            {/* Header */}
+            <div className="flex items-center justify-between mb-4 pb-4 border-b">
+              <h3 className="text-xl font-bold flex-1">
                 Comentarios {commentsCount > 0 && `(${commentsCount})`}
               </h3>
               <button
@@ -233,7 +232,7 @@ export default function ShortCard({ short, currentUserId, isActive }: ShortCardP
             </div>
 
             {/* Comments list with scroll */}
-            <div className="flex-1 overflow-y-auto">
+            <div className="flex-1 overflow-y-auto min-h-0">{/* min-h-0 is crucial for flex scroll */}
               <ShortCommentsList
                 shortId={short.id}
                 currentUserId={currentUserId}
