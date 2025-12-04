@@ -5,9 +5,11 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Send } from 'lucide-react'
 import { notifyXPGain } from './XPNotifications'
+import ImageUploader from './ImageUploader'
 
 export default function CreatePostForm({ userId }: { userId: string }) {
   const [content, setContent] = useState('')
+  const [imageUrl, setImageUrl] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const router = useRouter()
@@ -24,14 +26,17 @@ export default function CreatePostForm({ userId }: { userId: string }) {
       const { error } = await supabase.from('posts').insert({
         author_id: userId,
         content: content.trim(),
+        media_url: imageUrl,
       })
 
       if (error) throw error
 
-      // Notificar ganancia de XP por crear post
-      notifyXPGain(10, 'Publicaste un post')
+      // Notificar ganancia de XP por crear post (15 XP con imagen, 10 XP sin imagen)
+      const xpAmount = imageUrl ? 15 : 10
+      notifyXPGain(xpAmount, imageUrl ? 'Publicaste un post con imagen' : 'Publicaste un post')
 
       setContent('')
+      setImageUrl(null)
       router.refresh()
     } catch (err: any) {
       setError(err.message)
@@ -51,6 +56,13 @@ export default function CreatePostForm({ userId }: { userId: string }) {
           rows={3}
           className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
         />
+
+        {/* Image uploader */}
+        <ImageUploader
+          userId={userId}
+          onImageUploaded={(url) => setImageUrl(url)}
+          onImageRemoved={() => setImageUrl(null)}
+        />
         
         {error && (
           <div className="p-3 bg-red-50 text-red-600 text-sm rounded-lg">
@@ -61,6 +73,7 @@ export default function CreatePostForm({ userId }: { userId: string }) {
         <div className="flex items-center justify-between">
           <span className="text-sm text-gray-500">
             {content.length}/5000 caracteres
+            {imageUrl && <span className="ml-2 text-blue-600">• Con imagen (+5 XP extra)</span>}
           </span>
           <button
             type="submit"
