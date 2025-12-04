@@ -2,7 +2,7 @@
 
 import { createClient } from '@/lib/supabase/browserClient'
 import { useRouter } from 'next/navigation'
-import { LogOut, Home, User } from 'lucide-react'
+import { LogOut, Home, User, Zap } from 'lucide-react'
 import Link from 'next/link'
 
 type NavbarProps = {
@@ -53,6 +53,16 @@ export default function Navbar({ user, profile }: NavbarProps) {
                 >
                   <Home className="w-5 h-5" />
                   <span className="hidden sm:inline">Inicio</span>
+                </Link>
+
+                {/* Shorts Link */}
+                <Link
+                  href="/shorts"
+                  className="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-700 hover:bg-gradient-to-r hover:from-purple-50 hover:to-pink-50 hover:text-purple-600 transition"
+                  title="Shorts"
+                >
+                  <Zap className="w-5 h-5" />
+                  <span className="hidden sm:inline">Shorts</span>
                 </Link>
 
                 {/* Profile Link */}
