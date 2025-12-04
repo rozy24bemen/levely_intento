@@ -23,6 +23,24 @@ export default function ShortCard({ short, currentUserId, isActive }: ShortCardP
   const videoRef = useRef<HTMLVideoElement>(null)
   const supabase = createClient()
 
+  // Check if user has already liked this short
+  useEffect(() => {
+    const checkIfLiked = async () => {
+      if (!currentUserId) return
+      
+      const { data } = await supabase
+        .from('shorts_likes')
+        .select('id')
+        .eq('short_id', short.id)
+        .eq('user_id', currentUserId)
+        .maybeSingle()
+      
+      setLiked(!!data)
+    }
+    
+    checkIfLiked()
+  }, [currentUserId, short.id, supabase])
+
   // Auto play/pause based on visibility
   useEffect(() => {
     if (videoRef.current) {
@@ -43,8 +61,7 @@ export default function ShortCard({ short, currentUserId, isActive }: ShortCardP
     try {
       if (liked) {
         // Unlike
-        console.log('Intentando quitar like:', { short_id: short.id, user_id: currentUserId })
-        const { error, data } = await supabase
+        const { error } = await supabase
           .from('shorts_likes')
           .delete()
           .eq('short_id', short.id)
@@ -52,36 +69,31 @@ export default function ShortCard({ short, currentUserId, isActive }: ShortCardP
         
         if (error) {
           console.error('Error al quitar like:', error)
-          alert(`Error al quitar like: ${error.message}`)
           throw error
         }
         
-        console.log('Like quitado exitosamente:', data)
         setLiked(false)
         setLikesCount(prev => prev - 1)
       } else {
         // Like
         const likeData = { short_id: short.id, user_id: currentUserId }
-        console.log('Intentando dar like:', likeData)
-        console.log('Tipos:', {
-          short_id_type: typeof short.id,
-          user_id_type: typeof currentUserId,
-          short_id_value: short.id,
-          user_id_value: currentUserId
-        })
         
         const { error, data } = await supabase
           .from('shorts_likes')
           .insert(likeData)
         
         if (error) {
-          console.error('Error completo al dar like:', error)
-          console.error('Error details:', JSON.stringify(error, null, 2))
-          alert(`Error al dar like: ${error.message}\nCode: ${error.code}\nDetails: ${error.details}`)
+          // Si es error 23505 (duplicate key), significa que ya existe el like
+          if (error.code === '23505') {
+            console.log('El like ya existe, actualizando estado local')
+            setLiked(true)
+            return
+          }
+          
+          console.error('Error al dar like:', error)
           throw error
         }
         
-        console.log('Like dado exitosamente:', data)
         setLiked(true)
         setLikesCount(prev => prev + 1)
       }

@@ -362,18 +362,18 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 CREATE OR REPLACE FUNCTION check_short_viral_achievements(short_id_param UUID)
 RETURNS void AS $$
 DECLARE
-  likes_count INTEGER;
+  likes_count_var INTEGER;
   author_id_var UUID;
 BEGIN
-  SELECT likes_count, author_id INTO likes_count, author_id_var
-  FROM public.shorts
-  WHERE id = short_id_param;
+  SELECT s.likes_count, s.author_id INTO likes_count_var, author_id_var
+  FROM public.shorts s
+  WHERE s.id = short_id_param;
   
-  IF likes_count = 100 THEN
+  IF likes_count_var = 100 THEN
     PERFORM check_and_award_achievement(author_id_var, 'short_viral_100');
-  ELSIF likes_count = 500 THEN
+  ELSIF likes_count_var = 500 THEN
     PERFORM check_and_award_achievement(author_id_var, 'short_viral_500');
-  ELSIF likes_count = 1000 THEN
+  ELSIF likes_count_var = 1000 THEN
     PERFORM check_and_award_achievement(author_id_var, 'short_viral_1000');
   END IF;
 END;
