@@ -118,7 +118,7 @@ export default function ShortCard({ short, currentUserId, isActive }: ShortCardP
   }
 
   return (
-    <div className="relative w-full h-screen snap-start snap-always flex items-center justify-center bg-black">
+    <div className="relative w-full h-screen md:h-[100dvh] snap-start snap-always flex items-center justify-center bg-black overflow-hidden">
       {/* Video */}
       <video
         ref={videoRef}
@@ -211,7 +211,7 @@ export default function ShortCard({ short, currentUserId, isActive }: ShortCardP
       {/* Comments overlay (if opened) */}
       {showComments && (
         <div 
-          className="absolute inset-0 bg-black/50 backdrop-blur-sm flex items-end justify-end z-50"
+          className="absolute inset-0 bg-black/50 flex items-end justify-end z-50"
           onClick={() => setShowComments(false)}
         >
           <div 
