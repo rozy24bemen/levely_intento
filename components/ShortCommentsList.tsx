@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/browserClient'
 import type { ShortComment } from '@/lib/types'
 import CreateShortCommentForm from './CreateShortCommentForm'
 import { MessageSquare } from 'lucide-react'
+import Image from 'next/image'
 
 interface ShortCommentsListProps {
   shortId: string
@@ -81,8 +82,20 @@ export default function ShortCommentsList({ shortId, currentUserId, initialCount
         <div className="space-y-3 max-h-64 overflow-y-auto">
           {comments.map((comment) => (
             <div key={comment.id} className="flex gap-3">
-              <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-600 rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
-                {comment.profiles?.username?.[0]?.toUpperCase() || 'U'}
+              <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0">
+                {comment.profiles?.avatar_url ? (
+                  <Image
+                    src={comment.profiles.avatar_url}
+                    alt={comment.profiles.username || 'Usuario'}
+                    width={32}
+                    height={32}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center text-white font-bold text-sm">
+                    {comment.profiles?.username?.[0]?.toUpperCase() || 'U'}
+                  </div>
+                )}
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1">

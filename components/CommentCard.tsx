@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { Trash2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/browserClient'
 import type { Comment } from '@/lib/types'
+import Image from 'next/image'
 
 interface CommentCardProps {
   comment: Comment
@@ -42,8 +43,20 @@ export default function CommentCard({ comment, currentUserId, onDelete }: Commen
   return (
     <div className="flex items-start gap-3 py-3 border-b border-gray-100 last:border-0">
       {/* Avatar */}
-      <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
-        {comment.profiles?.username?.[0]?.toUpperCase() || 'U'}
+      <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0">
+        {comment.profiles?.avatar_url ? (
+          <Image
+            src={comment.profiles.avatar_url}
+            alt={comment.profiles.username || 'Usuario'}
+            width={32}
+            height={32}
+            className="w-full h-full object-cover"
+          />
+        ) : (
+          <div className="w-full h-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-sm font-bold">
+            {comment.profiles?.username?.[0]?.toUpperCase() || 'U'}
+          </div>
+        )}
       </div>
 
       {/* Content */}

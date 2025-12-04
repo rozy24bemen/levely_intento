@@ -76,8 +76,20 @@ export default function PostCard({ post, currentUserId }: { post: Post; currentU
     <article className="bg-white rounded-lg shadow-sm p-6 hover:shadow-md transition">
       <div className="flex items-start gap-3 mb-4">
         <Link href={`/profile/${post.profiles?.id}`} className="hover:opacity-80 transition-opacity">
-          <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold">
-            {post.profiles?.username?.[0]?.toUpperCase() || 'U'}
+          <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0">
+            {post.profiles?.avatar_url ? (
+              <Image
+                src={post.profiles.avatar_url}
+                alt={post.profiles.username || 'Usuario'}
+                width={40}
+                height={40}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <div className="w-full h-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold">
+                {post.profiles?.username?.[0]?.toUpperCase() || 'U'}
+              </div>
+            )}
           </div>
         </Link>
         <div className="flex-1">

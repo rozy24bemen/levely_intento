@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/browserClient'
 import { useRouter, usePathname } from 'next/navigation'
 import { LogOut, Home, User, Zap } from 'lucide-react'
 import Link from 'next/link'
+import Image from 'next/image'
 
 type NavbarProps = {
   user: {
@@ -84,8 +85,20 @@ export default function Navbar({ user, profile }: NavbarProps) {
                 {/* User Info */}
                 {profile && (
                   <div className="flex items-center gap-3 px-4 py-2 bg-gray-50 rounded-lg">
-                    <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-sm">
-                      {profile.username[0]?.toUpperCase()}
+                    <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0">
+                      {profile.avatar_url ? (
+                        <Image
+                          src={profile.avatar_url}
+                          alt={profile.username}
+                          width={32}
+                          height={32}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm">
+                          {profile.username[0]?.toUpperCase()}
+                        </div>
+                      )}
                     </div>
                     <div className="hidden md:block">
                       <p className="text-sm font-semibold text-gray-900">
