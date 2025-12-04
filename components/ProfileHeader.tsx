@@ -70,9 +70,9 @@ export default function ProfileHeader({ profile, isOwnProfile }: ProfileHeaderPr
     setError(null)
 
     try {
-      // Upload to Supabase Storage
-      const fileName = `${profile.id}-${Date.now()}.jpg`
-      const filePath = `${fileName}`
+      // Upload to Supabase Storage with userId folder structure
+      const fileName = `avatar-${Date.now()}.jpg`
+      const filePath = `${profile.id}/${fileName}`
 
       const { error: uploadError } = await supabase.storage
         .from('avatars')
