@@ -1,9 +1,9 @@
 import { createClient } from '@/lib/supabase/serverClient'
 import { notFound } from 'next/navigation'
-import PostCard from '@/components/PostCard'
 import ProfileHeader from '@/components/ProfileHeader'
 import ProfileStats from '@/components/ProfileStats'
 import AchievementsGrid from '@/components/AchievementsGrid'
+import ProfileContentTabs from '@/components/ProfileContentTabs'
 import type { Post } from '@/lib/types'
 import type { Achievement } from '@/components/AchievementCard'
 
@@ -56,6 +56,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
       likes_count,
       comments_count,
       media_url,
+      media_type,
       profiles!posts_author_id_fkey (
         id,
         username,
@@ -71,9 +72,42 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
     profiles: Array.isArray(post.profiles) ? post.profiles[0] : post.profiles
   })) as Post[] | null
 
+  // Get user's shorts
+  const { data: shortsData } = await supabase
+    .from('shorts')
+    .select(`
+      id,
+      video_url,
+      thumbnail_url,
+      title,
+      description,
+      likes_count,
+      comments_count,
+      views_count,
+      created_at,
+      profiles!shorts_author_id_fkey (
+        id,
+        username,
+        avatar_url,
+        level
+      )
+    `)
+    .eq('author_id', id)
+    .order('created_at', { ascending: false })
+
+  const shorts = shortsData?.map((short: any) => ({
+    ...short,
+    profiles: Array.isArray(short.profiles) ? short.profiles[0] : short.profiles
+  })) || []
+
   // Get stats
   const { count: postsCount } = await supabase
     .from('posts')
+    .select('*', { count: 'exact', head: true })
+    .eq('author_id', id)
+
+  const { count: shortsCount } = await supabase
+    .from('shorts')
     .select('*', { count: 'exact', head: true })
     .eq('author_id', id)
 
@@ -140,27 +174,16 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
           />
         </div>
 
-        {/* Posts Section */}
+        {/* Posts and Shorts Section with Tabs */}
         <div className="mt-8">
-          <h2 className="text-2xl font-bold text-gray-900 mb-6">
-            {isOwnProfile ? 'Mis Publicaciones' : 'Publicaciones'}
-          </h2>
-          
-          {posts && posts.length === 0 && (
-            <div className="bg-white rounded-lg shadow-sm p-12 text-center">
-              <p className="text-gray-500">
-                {isOwnProfile 
-                  ? 'Aún no has publicado nada. ¡Comparte tu primer post!'
-                  : 'Este usuario aún no ha publicado nada.'}
-              </p>
-            </div>
-          )}
-
-          <div className="space-y-4">
-            {posts?.map((post) => (
-              <PostCard key={post.id} post={post} currentUserId={user?.id} />
-            ))}
-          </div>
+          <ProfileContentTabs
+            posts={posts || []}
+            shorts={shorts}
+            postsCount={postsCount || 0}
+            shortsCount={shortsCount || 0}
+            currentUserId={user?.id}
+            isOwnProfile={isOwnProfile}
+          />
         </div>
       </div>
     </main>

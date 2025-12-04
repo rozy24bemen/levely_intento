@@ -7,6 +7,7 @@ import CommentsList from './CommentsList'
 import ImageModal from './ImageModal'
 import VideoModal from './VideoModal'
 import type { Post } from '@/lib/types'
+import Link from 'next/link'
 
 export default function PostCard({ post, currentUserId }: { post: Post; currentUserId?: string }) {
   const [liked, setLiked] = useState(false)
@@ -56,14 +57,18 @@ export default function PostCard({ post, currentUserId }: { post: Post; currentU
   return (
     <article className="bg-white rounded-lg shadow-sm p-6 hover:shadow-md transition">
       <div className="flex items-start gap-3 mb-4">
-        <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold">
-          {post.profiles?.username?.[0]?.toUpperCase() || 'U'}
-        </div>
+        <Link href={`/profile/${post.profiles?.id}`} className="hover:opacity-80 transition-opacity">
+          <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold">
+            {post.profiles?.username?.[0]?.toUpperCase() || 'U'}
+          </div>
+        </Link>
         <div className="flex-1">
           <div className="flex items-center gap-2">
-            <h3 className="font-semibold text-gray-900">
-              {post.profiles?.username || 'Usuario'}
-            </h3>
+            <Link href={`/profile/${post.profiles?.id}`} className="hover:underline">
+              <h3 className="font-semibold text-gray-900">
+                {post.profiles?.username || 'Usuario'}
+              </h3>
+            </Link>
             <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded-full font-medium">
               Nivel {post.profiles?.level || 1}
             </span>

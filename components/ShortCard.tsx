@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/browserClient'
 import type { Short } from '@/lib/types'
 import { notifyXPGain } from './XPNotifications'
 import ShortCommentsList from './ShortCommentsList'
+import Link from 'next/link'
 
 interface ShortCardProps {
   short: Short
@@ -100,7 +101,10 @@ export default function ShortCard({ short, currentUserId, isActive }: ShortCardP
       <div className="absolute top-0 left-0 right-0 h-24 bg-gradient-to-b from-black/40 to-transparent pointer-events-none" />
 
       {/* Author info (top left) */}
-      <div className="absolute top-4 left-4 flex items-center gap-3">
+      <Link 
+        href={`/profile/${short.profiles?.id}`}
+        className="absolute top-4 left-4 flex items-center gap-3 hover:opacity-80 transition-opacity"
+      >
         <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-600 rounded-full flex items-center justify-center text-white font-bold border-2 border-white shadow-lg">
           {short.profiles?.username?.[0]?.toUpperCase() || 'U'}
         </div>
@@ -112,7 +116,7 @@ export default function ShortCard({ short, currentUserId, isActive }: ShortCardP
             Nivel {short.profiles?.level || 1}
           </p>
         </div>
-      </div>
+      </Link>
 
       {/* Content info (bottom left) */}
       <div className="absolute bottom-20 left-4 right-20 space-y-2">
@@ -178,7 +182,7 @@ export default function ShortCard({ short, currentUserId, isActive }: ShortCardP
           onClick={() => setShowComments(false)}
         >
           <div 
-            className="w-full bg-white rounded-t-3xl p-6 max-h-[70vh] flex flex-col"
+            className="w-full bg-white rounded-t-3xl p-6 max-h-[80vh] md:max-h-[75vh] flex flex-col pb-safe"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Close handle */}
