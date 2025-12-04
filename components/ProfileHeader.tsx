@@ -5,6 +5,7 @@ import { Edit2, Check, X, Camera } from 'lucide-react'
 import { createClient } from '@/lib/supabase/browserClient'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
+import AvatarCropModal from './AvatarCropModal'
 
 type Profile = {
   id: string
@@ -29,6 +30,8 @@ export default function ProfileHeader({ profile, isOwnProfile }: ProfileHeaderPr
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [uploadingAvatar, setUploadingAvatar] = useState(false)
+  const [showCropModal, setShowCropModal] = useState(false)
+  const [selectedImageUrl, setSelectedImageUrl] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const supabase = createClient()
   const router = useRouter()
@@ -55,24 +58,34 @@ export default function ProfileHeader({ profile, isOwnProfile }: ProfileHeaderPr
       return
     }
 
+    // Create preview URL and show crop modal
+    const imageUrl = URL.createObjectURL(file)
+    setSelectedImageUrl(imageUrl)
+    setShowCropModal(true)
+  }
+
+  const handleSaveCroppedImage = async (croppedBlob: Blob) => {
+    setShowCropModal(false)
     setUploadingAvatar(true)
     setError(null)
 
     try {
       // Upload to Supabase Storage
-      const fileExt = file.name.split('.').pop()
-      const fileName = `${profile.id}-${Date.now()}.${fileExt}`
-      const filePath = `avatars/${fileName}`
+      const fileName = `${profile.id}-${Date.now()}.jpg`
+      const filePath = `${fileName}`
 
       const { error: uploadError } = await supabase.storage
-        .from('post-media')
-        .upload(filePath, file)
+        .from('avatars')
+        .upload(filePath, croppedBlob, {
+          contentType: 'image/jpeg',
+          upsert: true
+        })
 
       if (uploadError) throw uploadError
 
       // Get public URL
       const { data: { publicUrl } } = supabase.storage
-        .from('post-media')
+        .from('avatars')
         .getPublicUrl(filePath)
 
       // Update profile
@@ -88,6 +101,18 @@ export default function ProfileHeader({ profile, isOwnProfile }: ProfileHeaderPr
       setError(err.message || 'Error al subir la imagen')
     } finally {
       setUploadingAvatar(false)
+      if (selectedImageUrl) {
+        URL.revokeObjectURL(selectedImageUrl)
+        setSelectedImageUrl(null)
+      }
+    }
+  }
+
+  const handleCancelCrop = () => {
+    setShowCropModal(false)
+    if (selectedImageUrl) {
+      URL.revokeObjectURL(selectedImageUrl)
+      setSelectedImageUrl(null)
     }
   }
 
@@ -263,6 +288,15 @@ export default function ProfileHeader({ profile, isOwnProfile }: ProfileHeaderPr
           )}
         </div>
       </div>
+
+      {/* Crop Modal */}
+      {showCropModal && selectedImageUrl && (
+        <AvatarCropModal
+          imageUrl={selectedImageUrl}
+          onSave={handleSaveCroppedImage}
+          onCancel={handleCancelCrop}
+        />
+      )}
     </div>
   )
 }
