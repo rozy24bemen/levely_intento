@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/browserClient'
 import { useState } from 'react'
 import { Heart, MessageCircle } from 'lucide-react'
 import CommentsList from './CommentsList'
+import ImageModal from './ImageModal'
 import type { Post } from '@/lib/types'
 
 export default function PostCard({ post, currentUserId }: { post: Post; currentUserId?: string }) {
@@ -11,6 +12,7 @@ export default function PostCard({ post, currentUserId }: { post: Post; currentU
   const [likesCount, setLikesCount] = useState(post.likes_count)
   const [commentsCount, setCommentsCount] = useState(post.comments_count || 0)
   const [showComments, setShowComments] = useState(false)
+  const [showImageModal, setShowImageModal] = useState(false)
   const [loading, setLoading] = useState(false)
   const supabase = createClient()
 
@@ -79,11 +81,21 @@ export default function PostCard({ post, currentUserId }: { post: Post; currentU
       <p className="text-gray-800 mb-4 whitespace-pre-wrap">{post.content}</p>
 
       {post.media_url && (
-        <img
-          src={post.media_url}
-          alt="Post media"
-          className="w-full rounded-lg mb-4 max-h-96 object-cover"
-        />
+        <div 
+          className="relative w-full aspect-square rounded-lg overflow-hidden mb-4 cursor-pointer group"
+          onClick={() => setShowImageModal(true)}
+        >
+          <img
+            src={post.media_url}
+            alt="Post media"
+            className="w-full h-full object-cover transition-transform group-hover:scale-105"
+          />
+          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
+            <span className="text-white opacity-0 group-hover:opacity-100 transition-opacity text-sm font-medium">
+              Click para ver completa
+            </span>
+          </div>
+        </div>
       )}
 
       <div className="flex items-center gap-4 pt-4 border-t border-gray-100">
@@ -103,17 +115,25 @@ export default function PostCard({ post, currentUserId }: { post: Post; currentU
         <button
           onClick={() => setShowComments(!showComments)}
           className={`flex items-center gap-2 px-3 py-1.5 rounded-full transition ${
-            showComments
-              ? 'bg-blue-50 text-blue-600'
-              : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
-          }`}
-        >
-          <MessageCircle className="w-5 h-5" />
-          <span className="font-medium">{commentsCount}</span>
-        </button>
-      </div>
-
       {/* Comments section */}
+      {showComments && (
+        <CommentsList
+          postId={post.id}
+          currentUserId={currentUserId}
+          initialCount={commentsCount}
+        />
+      )}
+
+      {/* Image modal */}
+      {showImageModal && post.media_url && (
+        <ImageModal
+          imageUrl={post.media_url}
+          onClose={() => setShowImageModal(false)}
+        />
+      )}
+    </article>
+  )
+}     {/* Comments section */}
       {showComments && (
         <CommentsList
           postId={post.id}
