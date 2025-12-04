@@ -141,10 +141,11 @@ export default function ProfileHeader({ profile, isOwnProfile }: ProfileHeaderPr
             onChange={handleAvatarChange}
             className="hidden"
           />
-          <div
+          <button
             onClick={handleAvatarClick}
-            className={`w-24 h-24 rounded-full flex items-center justify-center text-white font-bold text-3xl flex-shrink-0 overflow-hidden ${
-              isOwnProfile ? 'cursor-pointer' : ''
+            disabled={!isOwnProfile || uploadingAvatar}
+            className={`w-24 h-24 rounded-full flex items-center justify-center text-white font-bold text-3xl flex-shrink-0 overflow-hidden relative ${
+              isOwnProfile && !uploadingAvatar ? 'cursor-pointer' : 'cursor-default'
             } ${uploadingAvatar ? 'opacity-50' : ''}`}
           >
             {profile.avatar_url ? (
@@ -160,17 +161,17 @@ export default function ProfileHeader({ profile, isOwnProfile }: ProfileHeaderPr
                 {profile.username[0]?.toUpperCase()}
               </div>
             )}
-          </div>
-          {isOwnProfile && !uploadingAvatar && (
-            <div className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
-              <Camera className="w-8 h-8 text-white" />
-            </div>
-          )}
-          {uploadingAvatar && (
-            <div className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center">
-              <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
-            </div>
-          )}
+            {isOwnProfile && !uploadingAvatar && (
+              <div className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                <Camera className="w-8 h-8 text-white" />
+              </div>
+            )}
+            {uploadingAvatar && (
+              <div className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center">
+                <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              </div>
+            )}
+          </button>
         </div>
 
         {/* Profile Info */}
