@@ -163,36 +163,38 @@ export default function ShortCard({ short, currentUserId, isActive }: ShortCardP
       onMouseEnter={() => setShowControls(true)}
       onMouseLeave={() => setShowControls(false)}
     >
-      {/* Video */}
-      <video
-        ref={videoRef}
-        src={short.video_url}
-        className="w-full h-full object-contain"
-        loop
-        playsInline
-        preload="auto"
-      />
-
-      {/* Progress bar */}
-      <div 
-        className={`absolute bottom-0 left-0 right-0 h-1 bg-white/20 cursor-pointer transition-all ${
-          showControls ? 'h-1.5' : 'h-1'
-        }`}
-        ref={progressBarRef}
-        onClick={handleProgressClick}
-      >
-        <div 
-          className="h-full bg-white transition-all"
-          style={{ width: `${(currentTime / duration) * 100}%` }}
+      {/* Video container with progress bar */}
+      <div className="relative w-full h-full flex items-center justify-center">
+        <video
+          ref={videoRef}
+          src={short.video_url}
+          className="w-full h-full object-contain"
+          loop
+          playsInline
+          preload="auto"
         />
-      </div>
 
-      {/* Time display */}
-      {showControls && duration > 0 && (
-        <div className="absolute bottom-2 left-4 text-white text-xs font-semibold drop-shadow-lg bg-black/50 px-2 py-1 rounded">
-          {formatTime(currentTime)} / {formatTime(duration)}
+        {/* Progress bar - only below video */}
+        <div 
+          className={`absolute bottom-0 left-0 right-0 h-1 bg-gray-600/50 cursor-pointer transition-all z-10 ${
+            showControls ? 'h-2' : 'h-1'
+          }`}
+          ref={progressBarRef}
+          onClick={handleProgressClick}
+        >
+          <div 
+            className="h-full bg-blue-500 transition-all"
+            style={{ width: `${(currentTime / duration) * 100}%` }}
+          />
         </div>
-      )}
+
+        {/* Time display */}
+        {showControls && duration > 0 && (
+          <div className="absolute bottom-4 left-4 text-white text-sm font-semibold drop-shadow-lg bg-black/70 px-3 py-1.5 rounded-lg z-10">
+            {formatTime(currentTime)} / {formatTime(duration)}
+          </div>
+        )}
+      </div>
 
       {/* Gradient overlays for better text visibility */}
       <div className="absolute bottom-0 left-0 right-0 h-1/3 bg-gradient-to-t from-black/80 via-black/40 to-transparent pointer-events-none" />
