@@ -211,11 +211,11 @@ export default function ShortCard({ short, currentUserId, isActive }: ShortCardP
       {/* Comments overlay (if opened) */}
       {showComments && (
         <div 
-          className="absolute inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50"
+          className="absolute inset-0 bg-black/50 backdrop-blur-sm flex items-end justify-end z-50"
           onClick={() => setShowComments(false)}
         >
           <div 
-            className="w-full max-w-2xl bg-white rounded-3xl p-6 max-h-[85vh] flex flex-col shadow-2xl"
+            className="w-full md:w-[440px] md:h-full bg-white md:rounded-none rounded-t-3xl p-6 max-h-[85vh] md:max-h-full flex flex-col"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
