@@ -115,6 +115,16 @@ export default function PostCard({ post, currentUserId }: { post: Post; currentU
         <button
           onClick={() => setShowComments(!showComments)}
           className={`flex items-center gap-2 px-3 py-1.5 rounded-full transition ${
+            showComments
+              ? 'bg-blue-50 text-blue-600'
+              : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
+          }`}
+        >
+          <MessageCircle className="w-5 h-5" />
+          <span className="font-medium">{commentsCount}</span>
+        </button>
+      </div>
+
       {/* Comments section */}
       {showComments && (
         <CommentsList
@@ -129,16 +139,6 @@ export default function PostCard({ post, currentUserId }: { post: Post; currentU
         <ImageModal
           imageUrl={post.media_url}
           onClose={() => setShowImageModal(false)}
-        />
-      )}
-    </article>
-  )
-}     {/* Comments section */}
-      {showComments && (
-        <CommentsList
-          postId={post.id}
-          currentUserId={currentUserId}
-          initialCount={commentsCount}
         />
       )}
     </article>
