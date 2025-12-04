@@ -2,9 +2,10 @@
 
 import { createClient } from '@/lib/supabase/browserClient'
 import { useState } from 'react'
-import { Heart, MessageCircle } from 'lucide-react'
+import { Heart, MessageCircle, Play } from 'lucide-react'
 import CommentsList from './CommentsList'
 import ImageModal from './ImageModal'
+import VideoModal from './VideoModal'
 import type { Post } from '@/lib/types'
 
 export default function PostCard({ post, currentUserId }: { post: Post; currentUserId?: string }) {
@@ -13,6 +14,7 @@ export default function PostCard({ post, currentUserId }: { post: Post; currentU
   const [commentsCount, setCommentsCount] = useState(post.comments_count || 0)
   const [showComments, setShowComments] = useState(false)
   const [showImageModal, setShowImageModal] = useState(false)
+  const [showVideoModal, setShowVideoModal] = useState(false)
   const [loading, setLoading] = useState(false)
   const supabase = createClient()
 
@@ -80,7 +82,8 @@ export default function PostCard({ post, currentUserId }: { post: Post; currentU
 
       <p className="text-gray-800 mb-4 whitespace-pre-wrap">{post.content}</p>
 
-      {post.media_url && (
+      {/* Image display */}
+      {post.media_url && post.media_type === 'image' && (
         <div 
           className="relative w-full aspect-square rounded-lg overflow-hidden mb-4 cursor-pointer group"
           onClick={() => setShowImageModal(true)}
@@ -94,6 +97,25 @@ export default function PostCard({ post, currentUserId }: { post: Post; currentU
             <span className="text-white opacity-0 group-hover:opacity-100 transition-opacity text-sm font-medium">
               Click para ver completa
             </span>
+          </div>
+        </div>
+      )}
+
+      {/* Video display */}
+      {post.media_url && post.media_type === 'video' && (
+        <div 
+          className="relative w-full aspect-square rounded-lg overflow-hidden mb-4 cursor-pointer group"
+          onClick={() => setShowVideoModal(true)}
+        >
+          <video
+            src={post.media_url}
+            className="w-full h-full object-cover"
+            preload="metadata"
+          />
+          <div className="absolute inset-0 bg-black/30 group-hover:bg-black/40 transition-colors flex items-center justify-center">
+            <div className="p-4 bg-white/90 rounded-full group-hover:bg-white group-hover:scale-110 transition-all">
+              <Play className="w-8 h-8 text-blue-600 fill-current" />
+            </div>
           </div>
         </div>
       )}
@@ -135,10 +157,18 @@ export default function PostCard({ post, currentUserId }: { post: Post; currentU
       )}
 
       {/* Image modal */}
-      {showImageModal && post.media_url && (
+      {showImageModal && post.media_url && post.media_type === 'image' && (
         <ImageModal
           imageUrl={post.media_url}
           onClose={() => setShowImageModal(false)}
+        />
+      )}
+
+      {/* Video modal */}
+      {showVideoModal && post.media_url && post.media_type === 'video' && (
+        <VideoModal
+          videoUrl={post.media_url}
+          onClose={() => setShowVideoModal(false)}
         />
       )}
     </article>

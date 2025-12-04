@@ -17,6 +17,7 @@ export type Post = {
   likes_count: number
   comments_count: number
   media_url: string | null
+  media_type: 'image' | 'video' | null
   profiles: Profile | null
 }
 
@@ -27,6 +28,7 @@ export type PostWithProfile = {
   likes_count: number
   comments_count: number
   media_url: string | null
+  media_type: 'image' | 'video' | null
   profiles: Profile
 }
 
