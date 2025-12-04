@@ -1,9 +1,10 @@
 'use client'
 
-import { useState } from 'react'
-import { Edit2, Check, X } from 'lucide-react'
+import { useState, useRef } from 'react'
+import { Edit2, Check, X, Camera } from 'lucide-react'
 import { createClient } from '@/lib/supabase/browserClient'
 import { useRouter } from 'next/navigation'
+import Image from 'next/image'
 
 type Profile = {
   id: string
@@ -27,8 +28,68 @@ export default function ProfileHeader({ profile, isOwnProfile }: ProfileHeaderPr
   const [bio, setBio] = useState(profile.bio || '')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [uploadingAvatar, setUploadingAvatar] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const supabase = createClient()
   const router = useRouter()
+
+  const handleAvatarClick = () => {
+    if (isOwnProfile && fileInputRef.current) {
+      fileInputRef.current.click()
+    }
+  }
+
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      setError('Por favor selecciona una imagen válida')
+      return
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      setError('La imagen no puede superar los 5MB')
+      return
+    }
+
+    setUploadingAvatar(true)
+    setError(null)
+
+    try {
+      // Upload to Supabase Storage
+      const fileExt = file.name.split('.').pop()
+      const fileName = `${profile.id}-${Date.now()}.${fileExt}`
+      const filePath = `avatars/${fileName}`
+
+      const { error: uploadError } = await supabase.storage
+        .from('post-media')
+        .upload(filePath, file)
+
+      if (uploadError) throw uploadError
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('post-media')
+        .getPublicUrl(filePath)
+
+      // Update profile
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ avatar_url: publicUrl })
+        .eq('id', profile.id)
+
+      if (updateError) throw updateError
+
+      router.refresh()
+    } catch (err: any) {
+      setError(err.message || 'Error al subir la imagen')
+    } finally {
+      setUploadingAvatar(false)
+    }
+  }
 
   const handleSave = async () => {
     if (!username.trim() || username.length < 3) {
@@ -72,8 +133,44 @@ export default function ProfileHeader({ profile, isOwnProfile }: ProfileHeaderPr
     <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
       <div className="flex items-start gap-6">
         {/* Avatar */}
-        <div className="w-24 h-24 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-3xl flex-shrink-0">
-          {profile.username[0]?.toUpperCase()}
+        <div className="relative group">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handleAvatarChange}
+            className="hidden"
+          />
+          <div
+            onClick={handleAvatarClick}
+            className={`w-24 h-24 rounded-full flex items-center justify-center text-white font-bold text-3xl flex-shrink-0 overflow-hidden ${
+              isOwnProfile ? 'cursor-pointer' : ''
+            } ${uploadingAvatar ? 'opacity-50' : ''}`}
+          >
+            {profile.avatar_url ? (
+              <Image
+                src={profile.avatar_url}
+                alt={profile.username}
+                width={96}
+                height={96}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <div className="w-full h-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+                {profile.username[0]?.toUpperCase()}
+              </div>
+            )}
+          </div>
+          {isOwnProfile && !uploadingAvatar && (
+            <div className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+              <Camera className="w-8 h-8 text-white" />
+            </div>
+          )}
+          {uploadingAvatar && (
+            <div className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center">
+              <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
+            </div>
+          )}
         </div>
 
         {/* Profile Info */}
