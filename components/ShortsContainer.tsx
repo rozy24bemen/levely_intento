@@ -86,7 +86,7 @@ export default function ShortsContainer({ initialShorts, currentUserId }: Shorts
   return (
     <div 
       ref={containerRef}
-      className="h-screen md:h-[100dvh] overflow-y-scroll snap-y snap-mandatory scroll-smooth scrollbar-hide"
+      className="h-[100dvh] overflow-y-scroll snap-y snap-mandatory scroll-smooth scrollbar-hide"
     >
       {initialShorts.map((short, index) => (
         <div

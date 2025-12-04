@@ -118,7 +118,7 @@ export default function ShortCard({ short, currentUserId, isActive }: ShortCardP
   }
 
   return (
-    <div className="relative w-full h-screen md:h-[100dvh] snap-start snap-always flex items-center justify-center bg-black overflow-hidden">
+    <div className="relative w-full h-[100dvh] snap-start snap-always flex items-center justify-center bg-black overflow-hidden">
       {/* Video */}
       <video
         ref={videoRef}
