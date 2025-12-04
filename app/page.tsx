@@ -21,6 +21,7 @@ export default async function Home({ searchParams }: PageProps) {
       content,
       created_at,
       likes_count,
+      comments_count,
       media_url,
       profiles!posts_author_id_fkey (
         id,

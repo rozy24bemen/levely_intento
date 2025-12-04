@@ -54,6 +54,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
       content,
       created_at,
       likes_count,
+      comments_count,
       media_url,
       profiles!posts_author_id_fkey (
         id,

@@ -2,12 +2,15 @@
 
 import { createClient } from '@/lib/supabase/browserClient'
 import { useState } from 'react'
-import { Heart } from 'lucide-react'
+import { Heart, MessageCircle } from 'lucide-react'
+import CommentsList from './CommentsList'
 import type { Post } from '@/lib/types'
 
 export default function PostCard({ post, currentUserId }: { post: Post; currentUserId?: string }) {
   const [liked, setLiked] = useState(false)
   const [likesCount, setLikesCount] = useState(post.likes_count)
+  const [commentsCount, setCommentsCount] = useState(post.comments_count || 0)
+  const [showComments, setShowComments] = useState(false)
   const [loading, setLoading] = useState(false)
   const supabase = createClient()
 
@@ -96,7 +99,28 @@ export default function PostCard({ post, currentUserId }: { post: Post; currentU
           <Heart className={`w-5 h-5 ${liked ? 'fill-current' : ''}`} />
           <span className="font-medium">{likesCount}</span>
         </button>
+
+        <button
+          onClick={() => setShowComments(!showComments)}
+          className={`flex items-center gap-2 px-3 py-1.5 rounded-full transition ${
+            showComments
+              ? 'bg-blue-50 text-blue-600'
+              : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
+          }`}
+        >
+          <MessageCircle className="w-5 h-5" />
+          <span className="font-medium">{commentsCount}</span>
+        </button>
       </div>
+
+      {/* Comments section */}
+      {showComments && (
+        <CommentsList
+          postId={post.id}
+          currentUserId={currentUserId}
+          initialCount={commentsCount}
+        />
+      )}
     </article>
   )
 }

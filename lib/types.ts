@@ -15,6 +15,7 @@ export type Post = {
   content: string
   created_at: string
   likes_count: number
+  comments_count: number
   media_url: string | null
   profiles: Profile | null
 }
@@ -24,6 +25,17 @@ export type PostWithProfile = {
   content: string
   created_at: string
   likes_count: number
+  comments_count: number
   media_url: string | null
   profiles: Profile
+}
+
+export type Comment = {
+  id: string
+  post_id: string
+  author_id: string
+  content: string
+  created_at: string
+  updated_at: string
+  profiles: Profile | null
 }
