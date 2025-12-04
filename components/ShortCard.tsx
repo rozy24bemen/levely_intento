@@ -133,26 +133,27 @@ export default function ShortCard({ short, currentUserId, isActive }: ShortCardP
       <div className="absolute bottom-0 left-0 right-0 h-1/3 bg-gradient-to-t from-black/80 via-black/40 to-transparent pointer-events-none" />
       <div className="absolute top-0 left-0 right-0 h-24 bg-gradient-to-b from-black/40 to-transparent pointer-events-none" />
 
-      {/* Author info (top left) */}
-      <Link 
-        href={`/profile/${short.author_id}`}
-        className="absolute top-4 left-4 flex items-center gap-3 hover:opacity-80 transition-opacity"
-      >
-        <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-600 rounded-full flex items-center justify-center text-white font-bold border-2 border-white shadow-lg">
-          {short.profiles?.username?.[0]?.toUpperCase() || 'U'}
-        </div>
-        <div>
-          <p className="text-white font-semibold text-sm drop-shadow-lg">
-            {short.profiles?.username || 'Usuario'}
-          </p>
-          <p className="text-white/80 text-xs drop-shadow-lg">
-            Nivel {short.profiles?.level || 1}
-          </p>
-        </div>
-      </Link>
-
       {/* Content info (bottom left) */}
-      <div className="absolute bottom-20 left-4 right-20 space-y-2">
+      <div className="absolute bottom-20 left-4 right-20 space-y-3">
+        {/* Author info */}
+        <Link 
+          href={`/profile/${short.author_id}`}
+          className="flex items-center gap-3 hover:opacity-80 transition-opacity w-fit"
+        >
+          <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-600 rounded-full flex items-center justify-center text-white font-bold border-2 border-white shadow-lg">
+            {short.profiles?.username?.[0]?.toUpperCase() || 'U'}
+          </div>
+          <div>
+            <p className="text-white font-semibold text-sm drop-shadow-lg">
+              {short.profiles?.username || 'Usuario'}
+            </p>
+            <p className="text-white/80 text-xs drop-shadow-lg">
+              Nivel {short.profiles?.level || 1}
+            </p>
+          </div>
+        </Link>
+
+        {/* Title and description */}
         {short.title && (
           <h3 className="text-white font-bold text-lg drop-shadow-lg">
             {short.title}
