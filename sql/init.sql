@@ -12,6 +12,7 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE TABLE IF NOT EXISTS public.profiles (
   id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   username TEXT UNIQUE NOT NULL,
+  email TEXT,
   bio TEXT,
   avatar_url TEXT,
   level INTEGER DEFAULT 1 NOT NULL,
@@ -73,6 +74,7 @@ CREATE INDEX IF NOT EXISTS idx_posts_created_at ON public.posts(created_at DESC)
 CREATE INDEX IF NOT EXISTS idx_likes_post_id ON public.likes(post_id);
 CREATE INDEX IF NOT EXISTS idx_likes_user_id ON public.likes(user_id);
 CREATE INDEX IF NOT EXISTS idx_user_achievements_user_id ON public.user_achievements(user_id);
+CREATE INDEX IF NOT EXISTS idx_profiles_email ON public.profiles(email);
 
 -- ============================================
 -- ROW LEVEL SECURITY (RLS)
@@ -175,10 +177,11 @@ $$ LANGUAGE plpgsql;
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
-  INSERT INTO public.profiles (id, username, avatar_url)
+  INSERT INTO public.profiles (id, username, email, avatar_url)
   VALUES (
     NEW.id,
     COALESCE(NEW.raw_user_meta_data->>'username', 'user_' || substr(NEW.id::text, 1, 8)),
+    NEW.email,
     NEW.raw_user_meta_data->>'avatar_url'
   );
   RETURN NEW;
