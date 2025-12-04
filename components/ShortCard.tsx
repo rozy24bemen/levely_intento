@@ -1,10 +1,11 @@
 'use client'
 
-import { Heart, MessageCircle, Share2 } from 'lucide-react'
+import { Heart, MessageCircle, Share2, X } from 'lucide-react'
 import { useState, useRef, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/browserClient'
 import type { Short } from '@/lib/types'
 import { notifyXPGain } from './XPNotifications'
+import ShortCommentsList from './ShortCommentsList'
 
 interface ShortCardProps {
   short: Short
@@ -15,6 +16,7 @@ interface ShortCardProps {
 export default function ShortCard({ short, currentUserId, isActive }: ShortCardProps) {
   const [liked, setLiked] = useState(false)
   const [likesCount, setLikesCount] = useState(short.likes_count)
+  const [commentsCount, setCommentsCount] = useState(short.comments_count)
   const [showComments, setShowComments] = useState(false)
   const [loading, setLoading] = useState(false)
   const videoRef = useRef<HTMLVideoElement>(null)
@@ -145,7 +147,6 @@ export default function ShortCard({ short, currentUserId, isActive }: ShortCardP
             {likesCount > 0 ? likesCount : ''}
           </span>
         </button>
-
         {/* Comments button */}
         <button
           onClick={() => setShowComments(!showComments)}
@@ -155,7 +156,7 @@ export default function ShortCard({ short, currentUserId, isActive }: ShortCardP
             <MessageCircle className="w-7 h-7 text-white" />
           </div>
           <span className="text-white text-xs font-semibold drop-shadow-lg">
-            {short.comments_count > 0 ? short.comments_count : ''}
+            {commentsCount > 0 ? commentsCount : ''}
           </span>
         </button>
 
@@ -173,20 +174,36 @@ export default function ShortCard({ short, currentUserId, isActive }: ShortCardP
       {/* Comments overlay (if opened) */}
       {showComments && (
         <div 
-          className="absolute inset-0 bg-black/50 backdrop-blur-sm flex items-end"
+          className="absolute inset-0 bg-black/50 backdrop-blur-sm flex items-end z-50"
           onClick={() => setShowComments(false)}
         >
           <div 
-            className="w-full bg-white rounded-t-3xl p-6 max-h-[70vh] overflow-y-auto"
+            className="w-full bg-white rounded-t-3xl p-6 max-h-[70vh] flex flex-col"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="w-12 h-1.5 bg-gray-300 rounded-full mx-auto mb-4" />
-            <h3 className="text-lg font-bold mb-4">
-              Comentarios {short.comments_count > 0 && `(${short.comments_count})`}
-            </h3>
-            <p className="text-gray-500 text-center py-8">
-              Sistema de comentarios próximamente...
-            </p>
+            {/* Close handle */}
+            <div className="flex items-center justify-between mb-4">
+              <div className="w-12 h-1.5 bg-gray-300 rounded-full" />
+              <h3 className="text-lg font-bold flex-1 text-center">
+                Comentarios {commentsCount > 0 && `(${commentsCount})`}
+              </h3>
+              <button
+                onClick={() => setShowComments(false)}
+                className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Comments list with scroll */}
+            <div className="flex-1 overflow-y-auto">
+              <ShortCommentsList
+                shortId={short.id}
+                currentUserId={currentUserId}
+                initialCount={commentsCount}
+                onCountUpdate={(newCount) => setCommentsCount(newCount)}
+              />
+            </div>
           </div>
         </div>
       )}
