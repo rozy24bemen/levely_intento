@@ -36,9 +36,13 @@ export default function ChatWindow({ conversationId, currentUserId }: ChatWindow
     loadOtherUser()
     markMessagesAsRead()
 
-    // Subscribe to new messages
+    // Subscribe to new messages with better error handling
     const channel = supabase
-      .channel(`messages-${conversationId}`)
+      .channel(`messages-${conversationId}`, {
+        config: {
+          broadcast: { self: true },
+        },
+      })
       .on(
         'postgres_changes',
         {
@@ -48,9 +52,10 @@ export default function ChatWindow({ conversationId, currentUserId }: ChatWindow
           filter: `conversation_id=eq.${conversationId}`,
         },
         (payload) => {
+          console.log('New message received:', payload)
           const newMsg = payload.new as Message
           
-          // Only add if message is not from current user (to avoid duplicates from optimistic update)
+          // Add message from other users
           if (newMsg.sender_id !== currentUserId) {
             setMessages((prev) => {
               // Check if message already exists
@@ -63,7 +68,9 @@ export default function ChatWindow({ conversationId, currentUserId }: ChatWindow
           }
         }
       )
-      .subscribe()
+      .subscribe((status) => {
+        console.log('Subscription status:', status)
+      })
 
     return () => {
       supabase.removeChannel(channel)

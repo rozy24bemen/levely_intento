@@ -41,6 +41,10 @@ CREATE INDEX IF NOT EXISTS idx_messages_unread ON public.messages(receiver_id, i
 ALTER TABLE public.conversations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.messages ENABLE ROW LEVEL SECURITY;
 
+-- Enable Realtime for messages table
+ALTER PUBLICATION supabase_realtime ADD TABLE public.messages;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.conversations;
+
 -- RLS Policies for conversations
 DROP POLICY IF EXISTS "Users can view their own conversations" ON public.conversations;
 CREATE POLICY "Users can view their own conversations"
