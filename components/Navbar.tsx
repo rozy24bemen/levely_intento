@@ -2,7 +2,7 @@
 
 import { createClient } from '@/lib/supabase/browserClient'
 import { useRouter, usePathname } from 'next/navigation'
-import { LogOut, Home, User, Zap } from 'lucide-react'
+import { LogOut, Home, User, Zap, Search } from 'lucide-react'
 import Link from 'next/link'
 import Image from 'next/image'
 
@@ -60,6 +60,16 @@ export default function Navbar({ user, profile }: NavbarProps) {
                 >
                   <Home className="w-5 h-5" />
                   <span className="hidden sm:inline">Inicio</span>
+                </Link>
+
+                {/* Search Link */}
+                <Link
+                  href="/search"
+                  className="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-700 hover:bg-gray-100 transition"
+                  title="Buscar Usuarios"
+                >
+                  <Search className="w-5 h-5" />
+                  <span className="hidden sm:inline">Buscar</span>
                 </Link>
 
                 {/* Shorts Link */}
