@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/browserClient'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
-import type { Conversation } from '@/lib/types'
 import { formatDistanceToNow } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { Loader2, MessageCircle } from 'lucide-react'
@@ -12,6 +11,32 @@ import { Loader2, MessageCircle } from 'lucide-react'
 type ConversationsListProps = {
   currentUserId: string
   selectedConversationId: string | null
+}
+
+type UserProfile = {
+  id: string
+  username: string
+  avatar_url: string | null
+  level: number
+}
+
+type Message = {
+  id: string
+  conversation_id: string
+  sender_id: string
+  content: string
+  created_at: string
+}
+
+type Conversation = {
+  id: string
+  participant1_id: string
+  participant2_id: string
+  last_message_at: string
+  created_at: string
+  other_user?: UserProfile
+  last_message?: Message
+  unread_count?: number
 }
 
 export default function ConversationsList({ currentUserId, selectedConversationId }: ConversationsListProps) {

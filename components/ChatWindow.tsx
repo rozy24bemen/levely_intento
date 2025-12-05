@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react'
 import { createClient } from '@/lib/supabase/browserClient'
-import type { Message, Profile } from '@/lib/types'
+import type { Message } from '@/lib/types'
 import Image from 'next/image'
 import { Send, Loader2, ArrowLeft } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
@@ -14,12 +14,19 @@ type ChatWindowProps = {
   currentUserId: string
 }
 
+type UserProfile = {
+  id: string
+  username: string
+  avatar_url: string | null
+  level: number
+}
+
 export default function ChatWindow({ conversationId, currentUserId }: ChatWindowProps) {
   const [messages, setMessages] = useState<Message[]>([])
   const [newMessage, setNewMessage] = useState('')
   const [loading, setLoading] = useState(true)
   const [sending, setSending] = useState(false)
-  const [otherUser, setOtherUser] = useState<Profile | null>(null)
+  const [otherUser, setOtherUser] = useState<UserProfile | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const router = useRouter()
   const supabase = createClient()
