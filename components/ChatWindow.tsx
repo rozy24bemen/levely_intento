@@ -40,7 +40,7 @@ export default function ChatWindow({ conversationId, currentUserId }: ChatWindow
     const channel = supabase
       .channel(`messages-${conversationId}`, {
         config: {
-          broadcast: { self: true },
+          broadcast: { self: false },
         },
       })
       .on(
@@ -52,24 +52,33 @@ export default function ChatWindow({ conversationId, currentUserId }: ChatWindow
           filter: `conversation_id=eq.${conversationId}`,
         },
         (payload) => {
-          console.log('New message received:', payload)
+          console.log('✉️ New message received via Realtime:', payload)
           const newMsg = payload.new as Message
           
-          // Add message from other users
-          if (newMsg.sender_id !== currentUserId) {
-            setMessages((prev) => {
-              // Check if message already exists
-              if (prev.some(m => m.id === newMsg.id)) return prev
-              return [...prev, newMsg]
-            })
-            
-            // Mark as read if it's not from current user
+          // Always add message from Realtime (both sent and received)
+          setMessages((prev) => {
+            // Check if message already exists to avoid duplicates
+            const exists = prev.some(m => m.id === newMsg.id)
+            if (exists) {
+              console.log('⚠️ Message already exists, skipping')
+              return prev
+            }
+            console.log('✅ Adding message to chat')
+            return [...prev, newMsg]
+          })
+          
+          // Mark as read if it's received (not sent by current user)
+          if (newMsg.sender_id !== currentUserId && newMsg.receiver_id === currentUserId) {
+            console.log('📖 Marking message as read')
             markMessagesAsRead()
           }
         }
       )
       .subscribe((status) => {
-        console.log('Subscription status:', status)
+        console.log('🔌 Realtime subscription status:', status)
+        if (status === 'SUBSCRIBED') {
+          console.log('✅ Successfully subscribed to messages')
+        }
       })
 
     return () => {
@@ -167,6 +176,7 @@ export default function ChatWindow({ conversationId, currentUserId }: ChatWindow
           ? conversation.participant2_id
           : conversation.participant1_id
 
+      console.log('📤 Sending message...')
       const { data: insertedMessage, error } = await supabase
         .from('messages')
         .insert({
@@ -180,13 +190,10 @@ export default function ChatWindow({ conversationId, currentUserId }: ChatWindow
 
       if (error) throw error
 
-      // Add message to local state immediately (optimistic update)
-      if (insertedMessage) {
-        setMessages((prev) => [...prev, insertedMessage])
-        scrollToBottom()
-      }
+      console.log('✅ Message sent successfully:', insertedMessage)
+      // Don't add to local state - let Realtime handle it
     } catch (error) {
-      console.error('Error sending message:', error)
+      console.error('❌ Error sending message:', error)
       setNewMessage(messageContent) // Restore message on error
     } finally {
       setSending(false)
