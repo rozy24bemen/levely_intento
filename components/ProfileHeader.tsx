@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef } from 'react'
-import { Edit2, Check, X, Camera } from 'lucide-react'
+import { Edit2, Check, X, Camera, MessageCircle } from 'lucide-react'
 import { createClient } from '@/lib/supabase/browserClient'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
@@ -154,6 +154,23 @@ export default function ProfileHeader({ profile, isOwnProfile }: ProfileHeaderPr
     setIsEditing(false)
   }
 
+  const handleSendMessage = async () => {
+    try {
+      // Get or create conversation
+      const { data, error } = await supabase.rpc('get_or_create_conversation', {
+        user1_id: profile.id,
+        user2_id: (await supabase.auth.getUser()).data.user?.id,
+      })
+
+      if (error) throw error
+
+      // Redirect to messages with conversation
+      router.push(`/messages?chat=${data}`)
+    } catch (error) {
+      console.error('Error creating conversation:', error)
+    }
+  }
+
   return (
     <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
       <div className="flex items-start gap-6">
@@ -208,13 +225,22 @@ export default function ProfileHeader({ profile, isOwnProfile }: ProfileHeaderPr
                 <span className="px-3 py-1 bg-gradient-to-r from-blue-500 to-purple-600 text-white text-sm rounded-full font-semibold">
                   Nivel {profile.level}
                 </span>
-                {isOwnProfile && (
+                {isOwnProfile ? (
                   <button
                     onClick={() => setIsEditing(true)}
                     className="ml-auto p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition"
                     title="Editar perfil"
                   >
                     <Edit2 className="w-5 h-5" />
+                  </button>
+                ) : (
+                  <button
+                    onClick={handleSendMessage}
+                    className="ml-auto flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium"
+                    title="Enviar mensaje"
+                  >
+                    <MessageCircle className="w-5 h-5" />
+                    <span>Enviar mensaje</span>
                   </button>
                 )}
               </div>

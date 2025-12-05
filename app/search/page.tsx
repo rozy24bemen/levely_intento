@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/serverClient'
 import SearchBar from '@/components/SearchBar'
+import UserSearchCard from '@/components/UserSearchCard'
 import Link from 'next/link'
-import Image from 'next/image'
 
 type SearchPageProps = {
   searchParams: Promise<{ q?: string }>
@@ -52,54 +52,11 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
               {users.length} resultado{users.length !== 1 ? 's' : ''} para "{query}"
             </p>
             {users.map((profile) => (
-              <Link
-                key={profile.id}
-                href={`/profile/${profile.id}`}
-                className="block bg-white rounded-lg shadow-sm p-4 hover:shadow-md transition group"
-              >
-                <div className="flex items-center gap-4">
-                  {/* Avatar */}
-                  <div className="w-16 h-16 rounded-full overflow-hidden flex-shrink-0">
-                    {profile.avatar_url ? (
-                      <Image
-                        src={profile.avatar_url}
-                        alt={profile.username}
-                        width={64}
-                        height={64}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-full h-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-xl">
-                        {profile.username[0]?.toUpperCase()}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* User Info */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <h3 className="text-lg font-semibold text-gray-900 group-hover:text-blue-600 transition truncate">
-                        {profile.username}
-                      </h3>
-                      <span className="px-2 py-0.5 bg-gradient-to-r from-blue-500 to-purple-600 text-white text-xs rounded-full font-semibold flex-shrink-0">
-                        Nv. {profile.level}
-                      </span>
-                    </div>
-                    {profile.bio && (
-                      <p className="text-sm text-gray-600 line-clamp-2">
-                        {profile.bio}
-                      </p>
-                    )}
-                  </div>
-
-                  {/* Arrow indicator */}
-                  <div className="text-gray-400 group-hover:text-blue-600 transition">
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
-                  </div>
-                </div>
-              </Link>
+              <UserSearchCard 
+                key={profile.id} 
+                profile={profile}
+                currentUserId={user?.id}
+              />
             ))}
           </div>
         ) : (
