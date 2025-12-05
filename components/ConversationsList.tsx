@@ -48,13 +48,24 @@ export default function ConversationsList({ currentUserId, selectedConversationI
   useEffect(() => {
     loadConversations()
 
-    // Subscribe to new messages
+    // Subscribe to new messages to update conversations list
     const channel = supabase
       .channel('conversations-changes')
       .on(
         'postgres_changes',
         {
-          event: '*',
+          event: 'INSERT',
+          schema: 'public',
+          table: 'messages',
+        },
+        () => {
+          loadConversations()
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
           schema: 'public',
           table: 'messages',
         },

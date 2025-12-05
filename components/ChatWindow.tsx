@@ -49,10 +49,16 @@ export default function ChatWindow({ conversationId, currentUserId }: ChatWindow
         },
         (payload) => {
           const newMsg = payload.new as Message
-          setMessages((prev) => [...prev, newMsg])
           
-          // Mark as read if it's not from current user
-          if (newMsg.receiver_id === currentUserId) {
+          // Only add if message is not from current user (to avoid duplicates from optimistic update)
+          if (newMsg.sender_id !== currentUserId) {
+            setMessages((prev) => {
+              // Check if message already exists
+              if (prev.some(m => m.id === newMsg.id)) return prev
+              return [...prev, newMsg]
+            })
+            
+            // Mark as read if it's not from current user
             markMessagesAsRead()
           }
         }
@@ -135,7 +141,9 @@ export default function ChatWindow({ conversationId, currentUserId }: ChatWindow
     
     if (!newMessage.trim() || sending) return
 
+    const messageContent = newMessage.trim()
     setSending(true)
+    setNewMessage('') // Clear input immediately for better UX
 
     try {
       // Get conversation participants
@@ -152,18 +160,27 @@ export default function ChatWindow({ conversationId, currentUserId }: ChatWindow
           ? conversation.participant2_id
           : conversation.participant1_id
 
-      const { error } = await supabase.from('messages').insert({
-        conversation_id: conversationId,
-        sender_id: currentUserId,
-        receiver_id: receiverId,
-        content: newMessage.trim(),
-      })
+      const { data: insertedMessage, error } = await supabase
+        .from('messages')
+        .insert({
+          conversation_id: conversationId,
+          sender_id: currentUserId,
+          receiver_id: receiverId,
+          content: messageContent,
+        })
+        .select()
+        .single()
 
       if (error) throw error
 
-      setNewMessage('')
+      // Add message to local state immediately (optimistic update)
+      if (insertedMessage) {
+        setMessages((prev) => [...prev, insertedMessage])
+        scrollToBottom()
+      }
     } catch (error) {
       console.error('Error sending message:', error)
+      setNewMessage(messageContent) // Restore message on error
     } finally {
       setSending(false)
     }
