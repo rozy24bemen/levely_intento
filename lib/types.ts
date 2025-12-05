@@ -83,7 +83,9 @@ export type Message = {
   sender_id: string
   receiver_id: string
   content: string
+  image_url?: string | null
   is_read: boolean
+  deleted_at?: string | null
   created_at: string
   updated_at: string
   sender?: Profile

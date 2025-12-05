@@ -5,6 +5,7 @@ import { useRouter, usePathname } from 'next/navigation'
 import { LogOut, Home, User, Zap, Search, MessageCircle } from 'lucide-react'
 import Link from 'next/link'
 import Image from 'next/image'
+import UnreadMessagesCount from './UnreadMessagesCount'
 
 type NavbarProps = {
   user: {
@@ -75,11 +76,12 @@ export default function Navbar({ user, profile }: NavbarProps) {
                 {/* Messages Link */}
                 <Link
                   href="/messages"
-                  className="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-700 hover:bg-gray-100 transition"
+                  className="relative flex items-center gap-2 px-3 py-2 rounded-lg text-gray-700 hover:bg-gray-100 transition"
                   title="Mensajes"
                 >
                   <MessageCircle className="w-5 h-5" />
                   <span className="hidden sm:inline">Mensajes</span>
+                  <UnreadMessagesCount userId={user.id} />
                 </Link>
 
                 {/* Shorts Link */}

@@ -4,6 +4,7 @@ import "./globals.css";
 import { createClient } from '@/lib/supabase/serverClient'
 import Navbar from '@/components/Navbar'
 import XPNotificationContainer from '@/components/XPNotifications'
+import MessageNotifications from '@/components/MessageNotifications'
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -46,6 +47,7 @@ export default async function RootLayout({
         <Navbar user={user} profile={profile} />
         {children}
         <XPNotificationContainer />
+        {user && <MessageNotifications userId={user.id} />}
       </body>
     </html>
   );
