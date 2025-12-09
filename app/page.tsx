@@ -17,7 +17,17 @@ export default async function Home({ searchParams }: PageProps) {
   let postsData, error
   
   if (user) {
+    // Get list of users that current user follows
+    const { data: followsData } = await supabase
+      .from('follows')
+      .select('following_id')
+      .eq('follower_id', user.id)
+
+    const followingIds = followsData?.map(f => f.following_id) || []
+    
     // Get posts from users you follow + your own posts
+    const authorIds = [user.id, ...followingIds]
+    
     const { data, error: fetchError } = await supabase
       .from('posts')
       .select(`
@@ -36,7 +46,7 @@ export default async function Home({ searchParams }: PageProps) {
           level
         )
       `)
-      .or(`author_id.eq.${user.id},author_id.in.(select following_id from follows where follower_id = '${user.id}')`)
+      .in('author_id', authorIds)
       .order('created_at', { ascending: false })
       .limit(20)
 
