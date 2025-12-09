@@ -157,10 +157,6 @@ DECLARE
   post_content TEXT;
   post_media TEXT;
   notification_action_key TEXT;
-  existing_notification_id UUID;
-  existing_metadata JSONB;
-  like_count INTEGER;
-  other_likers JSONB;
 BEGIN
   -- Get post owner and content
   SELECT author_id, content, media_url INTO post_owner_id, post_content, post_media
@@ -177,94 +173,33 @@ BEGIN
   FROM profiles
   WHERE id = NEW.user_id;
   
-  -- Create unique action key per post (not per user): like_{post_id}
-  notification_action_key := 'like_' || NEW.post_id;
+  -- Create unique action key per like: like_{post_id}_{user_id}
+  notification_action_key := 'like_' || NEW.post_id || '_' || NEW.user_id;
   
-  -- Check if notification already exists for this post
-  SELECT id, metadata INTO existing_notification_id, existing_metadata
-  FROM notifications
-  WHERE action_key = notification_action_key;
-  
-  IF existing_notification_id IS NOT NULL THEN
-    -- Notification exists, update it with batching
-    -- Get current like count for this post
-    SELECT COUNT(*) INTO like_count
-    FROM likes
-    WHERE post_id = NEW.post_id;
-    
-    -- Update the notification with new count and latest liker
-    UPDATE notifications
-    SET 
-      message = CASE
-        WHEN like_count = 1 THEN liker_username || ' le gustó tu publicación (+5 XP)'
-        WHEN like_count = 2 THEN liker_username || ' y 1 usuario más les gustó tu publicación (+' || (like_count * 5) || ' XP)'
-        ELSE liker_username || ' y ' || (like_count - 1) || ' usuarios más les gustó tu publicación (+' || (like_count * 5) || ' XP)'
-      END,
-      metadata = jsonb_set(
-        jsonb_set(
-          jsonb_set(
-            existing_metadata,
-            '{from_user}', to_jsonb(liker_username)
-          ),
-          '{from_user_avatar}', to_jsonb(liker_avatar)
-        ),
-        '{like_count}', to_jsonb(like_count)
+  -- Create notification (one per user per post)
+  BEGIN
+    INSERT INTO notifications (user_id, type, title, message, metadata, action_key)
+    VALUES (
+      post_owner_id,
+      'like',
+      'Nuevo me gusta',
+      liker_username || ' le gustó tu publicación (+5 XP)',
+      jsonb_build_object(
+        'from_user', liker_username,
+        'from_user_id', NEW.user_id,
+        'from_user_avatar', liker_avatar,
+        'post_id', NEW.post_id,
+        'post_preview', SUBSTRING(post_content, 1, 100),
+        'post_media', post_media,
+        'xp_gained', 5
       ),
-      is_read = false,
-      created_at = NOW(),
-      updated_at = NOW()
-    WHERE id = existing_notification_id;
-  ELSE
-    -- Create new notification
-    BEGIN
-      INSERT INTO notifications (user_id, type, title, message, metadata, action_key)
-      VALUES (
-        post_owner_id,
-        'like',
-        'Nuevo me gusta',
-        liker_username || ' le gustó tu publicación (+5 XP)',
-        jsonb_build_object(
-          'from_user', liker_username,
-          'from_user_id', NEW.user_id,
-          'from_user_avatar', liker_avatar,
-          'post_id', NEW.post_id,
-          'post_preview', SUBSTRING(post_content, 1, 100),
-          'post_media', post_media,
-          'xp_gained', 5,
-          'like_count', 1
-        ),
-        notification_action_key
-      );
-    EXCEPTION
-      WHEN unique_violation THEN
-        -- Notification was just created by another process, update it instead
-        SELECT COUNT(*) INTO like_count
-        FROM likes
-        WHERE post_id = NEW.post_id;
-        
-        UPDATE notifications
-        SET 
-          message = CASE
-            WHEN like_count = 1 THEN liker_username || ' le gustó tu publicación (+5 XP)'
-            WHEN like_count = 2 THEN liker_username || ' y 1 usuario más les gustó tu publicación (+' || (like_count * 5) || ' XP)'
-            ELSE liker_username || ' y ' || (like_count - 1) || ' usuarios más les gustó tu publicación (+' || (like_count * 5) || ' XP)'
-          END,
-          metadata = jsonb_set(
-            jsonb_set(
-              jsonb_set(
-                metadata,
-                '{from_user}', to_jsonb(liker_username)
-              ),
-              '{from_user_avatar}', to_jsonb(liker_avatar)
-            ),
-            '{like_count}', to_jsonb(like_count)
-          ),
-          is_read = false,
-          created_at = NOW(),
-          updated_at = NOW()
-        WHERE action_key = notification_action_key;
-    END;
-  END IF;
+      notification_action_key
+    );
+  EXCEPTION
+    WHEN unique_violation THEN
+      -- Notification already exists, ignore
+      NULL;
+  END;
   
   RETURN NEW;
 END;
@@ -282,63 +217,12 @@ CREATE OR REPLACE FUNCTION delete_like_notification()
 RETURNS TRIGGER AS $$
 DECLARE
   notification_action_key TEXT;
-  remaining_likes INTEGER;
-  latest_liker_username TEXT;
-  latest_liker_avatar TEXT;
-  latest_liker_id UUID;
-  existing_metadata JSONB;
-  notification_id UUID;
 BEGIN
-  -- Create the same action key used when creating the notification (per post)
-  notification_action_key := 'like_' || OLD.post_id;
+  -- Create the same action key used when creating the notification
+  notification_action_key := 'like_' || OLD.post_id || '_' || OLD.user_id;
   
-  -- Check how many likes remain for this post
-  SELECT COUNT(*) INTO remaining_likes
-  FROM likes
-  WHERE post_id = OLD.post_id;
-  
-  IF remaining_likes = 0 THEN
-    -- No likes left, delete the notification
-    DELETE FROM notifications WHERE action_key = notification_action_key;
-  ELSE
-    -- Still have likes, update the notification with new count and latest liker
-    -- Get the most recent liker (not the one being deleted)
-    SELECT l.user_id, p.username, p.avatar_url 
-    INTO latest_liker_id, latest_liker_username, latest_liker_avatar
-    FROM likes l
-    JOIN profiles p ON l.user_id = p.id
-    WHERE l.post_id = OLD.post_id
-    ORDER BY l.created_at DESC
-    LIMIT 1;
-    
-    -- Get existing notification
-    SELECT id, metadata INTO notification_id, existing_metadata
-    FROM notifications
-    WHERE action_key = notification_action_key;
-    
-    IF notification_id IS NOT NULL THEN
-      -- Update notification with new count
-      UPDATE notifications
-      SET 
-        message = CASE
-          WHEN remaining_likes = 1 THEN latest_liker_username || ' le gustó tu publicación (+5 XP)'
-          WHEN remaining_likes = 2 THEN latest_liker_username || ' y 1 usuario más les gustó tu publicación (+' || (remaining_likes * 5) || ' XP)'
-          ELSE latest_liker_username || ' y ' || (remaining_likes - 1) || ' usuarios más les gustó tu publicación (+' || (remaining_likes * 5) || ' XP)'
-        END,
-        metadata = jsonb_set(
-          jsonb_set(
-            jsonb_set(
-              existing_metadata,
-              '{from_user}', to_jsonb(latest_liker_username)
-            ),
-            '{from_user_avatar}', to_jsonb(latest_liker_avatar)
-          ),
-          '{like_count}', to_jsonb(remaining_likes)
-        ),
-        updated_at = NOW()
-      WHERE id = notification_id;
-    END IF;
-  END IF;
+  -- Delete the notification using the action key
+  DELETE FROM notifications WHERE action_key = notification_action_key;
   
   RETURN OLD;
 END;
