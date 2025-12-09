@@ -212,6 +212,7 @@ BEGIN
   -- Delete the notification for this specific like
   DELETE FROM notifications
   WHERE type = 'like'
+  AND user_id = (SELECT author_id FROM posts WHERE id = OLD.post_id)
   AND metadata->>'post_id' = OLD.post_id::text
   AND metadata->>'from_user_id' = OLD.user_id::text;
   
@@ -287,6 +288,7 @@ BEGIN
   -- Delete the notification for this specific comment
   DELETE FROM notifications
   WHERE type = 'comment'
+  AND user_id = (SELECT author_id FROM posts WHERE id = OLD.post_id)
   AND metadata->>'post_id' = OLD.post_id::text
   AND metadata->>'from_user_id' = OLD.author_id::text;
   

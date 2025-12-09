@@ -42,6 +42,20 @@ export default function NotificationsPage() {
   useEffect(() => {
     loadNotifications()
     subscribeToNotifications()
+    
+    // Marcar todas como leídas automáticamente al entrar
+    const markAllAsReadOnLoad = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+      
+      await supabase
+        .from('notifications')
+        .update({ is_read: true })
+        .eq('user_id', user.id)
+        .eq('is_read', false)
+    }
+    
+    markAllAsReadOnLoad()
   }, [filter])
 
   const loadNotifications = async () => {
@@ -64,7 +78,9 @@ export default function NotificationsPage() {
 
       if (error) throw error
 
-      setNotifications(data || [])
+      // Marcar todas las notificaciones como leídas en el estado local
+      const readNotifications = (data || []).map(n => ({ ...n, is_read: true }))
+      setNotifications(readNotifications)
     } catch (error) {
       console.error('Error loading notifications:', error)
     } finally {
@@ -191,19 +207,9 @@ export default function NotificationsPage() {
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}
               >
-                No leídas {unreadCount > 0 && `(${unreadCount})`}
+                No leídas
               </button>
             </div>
-
-            {/* Mark all as read */}
-            {unreadCount > 0 && (
-              <button
-                onClick={markAllAsRead}
-                className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition font-medium"
-              >
-                Marcar todas como leídas
-              </button>
-            )}
           </div>
         </div>
 
