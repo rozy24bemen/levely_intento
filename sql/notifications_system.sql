@@ -168,35 +168,3 @@ CREATE TRIGGER like_notification_trigger
 AFTER INSERT ON likes
 FOR EACH ROW
 EXECUTE FUNCTION create_like_notification();
-
--- Function to create follow notification
-CREATE OR REPLACE FUNCTION create_follow_notification()
-RETURNS TRIGGER AS $$
-DECLARE
-  follower_username TEXT;
-BEGIN
-  -- Get follower username
-  SELECT username INTO follower_username
-  FROM profiles
-  WHERE id = NEW.follower_id;
-  
-  -- Create notification
-  INSERT INTO notifications (user_id, type, title, message, metadata)
-  VALUES (
-    NEW.following_id,
-    'follow',
-    'Nuevo seguidor',
-    follower_username || ' comenzó a seguirte',
-    jsonb_build_object('from_user', follower_username, 'user_id', NEW.follower_id)
-  );
-  
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
--- Trigger for follow notifications
-DROP TRIGGER IF EXISTS follow_notification_trigger ON follows;
-CREATE TRIGGER follow_notification_trigger
-AFTER INSERT ON follows
-FOR EACH ROW
-EXECUTE FUNCTION create_follow_notification();
