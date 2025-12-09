@@ -231,6 +231,15 @@ export default function ShortCard({ short, currentUserId, isActive }: ShortCardP
             {short.description}
           </p>
         )}
+        
+        {/* Date */}
+        <p className="text-white/70 text-xs drop-shadow-lg">
+          {new Date(short.created_at).toLocaleDateString('es-ES', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+          })}
+        </p>
       </div>
 
       {/* Actions (right side) */}
