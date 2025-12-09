@@ -46,8 +46,18 @@ ON notifications FOR INSERT
 TO authenticated
 WITH CHECK (true);
 
--- Enable Realtime
-ALTER PUBLICATION supabase_realtime ADD TABLE notifications;
+-- Enable Realtime (skip if already added)
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables 
+    WHERE pubname = 'supabase_realtime' 
+    AND schemaname = 'public' 
+    AND tablename = 'notifications'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE notifications;
+  END IF;
+END $$;
 
 -- Function to create XP notification
 CREATE OR REPLACE FUNCTION create_xp_notification()
