@@ -153,7 +153,6 @@ export default function ChatWindow({ conversationId, currentUserId }: ChatWindow
         .from('messages')
         .select('*')
         .eq('conversation_id', conversationId)
-        .is('deleted_at', null)
         .order('created_at', { ascending: true })
 
       if (error) throw error
@@ -246,91 +245,14 @@ export default function ChatWindow({ conversationId, currentUserId }: ChatWindow
   }
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-
-    // Validate file type
-    if (!file.type.startsWith('image/')) {
-      alert('Por favor selecciona una imagen válida')
-      return
-    }
-
-    // Validate file size (5MB max)
-    if (file.size > 5 * 1024 * 1024) {
-      alert('La imagen no debe superar 5MB')
-      return
-    }
-
-    setUploadingImage(true)
-
-    try {
-      // Upload to Supabase Storage
-      const fileExt = file.name.split('.').pop()
-      const fileName = `${currentUserId}-${Date.now()}.${fileExt}`
-      const { data, error: uploadError } = await supabase.storage
-        .from('message-images')
-        .upload(fileName, file)
-
-      if (uploadError) throw uploadError
-
-      // Get public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from('message-images')
-        .getPublicUrl(fileName)
-
-      // Send message with image URL
-      const { data: conversation } = await supabase
-        .from('conversations')
-        .select('participant1_id, participant2_id')
-        .eq('id', conversationId)
-        .single()
-
-      if (!conversation) throw new Error('Conversation not found')
-
-      const receiverId =
-        conversation.participant1_id === currentUserId
-          ? conversation.participant2_id
-          : conversation.participant1_id
-
-      await supabase
-        .from('messages')
-        .insert({
-          conversation_id: conversationId,
-          sender_id: currentUserId,
-          receiver_id: receiverId,
-          content: '[Imagen]',
-          image_url: publicUrl,
-        })
-
-      // Clear file input
-      if (fileInputRef.current) {
-        fileInputRef.current.value = ''
-      }
-    } catch (error) {
-      console.error('Error uploading image:', error)
-      alert('Error al subir la imagen')
-    } finally {
-      setUploadingImage(false)
+    alert('La función de imágenes estará disponible pronto. Por favor, ejecuta el script SQL en Supabase primero.')
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
     }
   }
 
   const handleDeleteMessage = async (messageId: string) => {
-    if (!confirm('¿Eliminar este mensaje?')) return
-
-    try {
-      const { error } = await supabase
-        .from('messages')
-        .update({ deleted_at: new Date().toISOString() })
-        .eq('id', messageId)
-
-      if (error) throw error
-
-      // Remove from local state
-      setMessages(prev => prev.filter(m => m.id !== messageId))
-    } catch (error) {
-      console.error('Error deleting message:', error)
-      alert('Error al eliminar el mensaje')
-    }
+    alert('La función de eliminar mensajes estará disponible pronto. Por favor, ejecuta el script SQL en Supabase primero.')
   }
 
   const handleBack = () => {
@@ -436,6 +358,7 @@ export default function ChatWindow({ conversationId, currentUserId }: ChatWindow
                       className={`text-xs mt-1 ${
                         isOwn ? 'text-blue-100' : 'text-gray-500'
                       }`}
+                      suppressHydrationWarning
                     >
                       {formatDistanceToNow(new Date(message.created_at), {
                         addSuffix: true,

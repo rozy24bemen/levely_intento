@@ -209,7 +209,7 @@ export default function ConversationsList({ currentUserId, selectedConversationI
                     {otherUser.username}
                   </h3>
                   {conversation.last_message && (
-                    <span className="text-xs text-gray-500 flex-shrink-0 ml-2">
+                    <span className="text-xs text-gray-500 flex-shrink-0 ml-2" suppressHydrationWarning>
                       {formatDistanceToNow(new Date(conversation.last_message.created_at), {
                         addSuffix: true,
                         locale: es,
