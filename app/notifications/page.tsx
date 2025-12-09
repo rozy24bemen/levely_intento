@@ -186,7 +186,7 @@ export default function NotificationsPage() {
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
             <Bell className="w-16 h-16 mx-auto mb-4 text-gray-300" />
             <p className="text-gray-500 text-lg">
-              {filter === 'unread' ? 'No tienes notificaciones sin leer' : 'No tienes notificaciones'}
+              No tienes notificaciones
             </p>
           </div>
         ) : (
