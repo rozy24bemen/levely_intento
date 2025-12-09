@@ -166,6 +166,7 @@ DECLARE
   post_content TEXT;
   post_media TEXT;
   notification_action_key TEXT;
+  existing_notification_id UUID;
 BEGIN
   -- Get post owner and content
   SELECT author_id, content, media_url INTO post_owner_id, post_content, post_media
@@ -185,27 +186,38 @@ BEGIN
   -- Create unique action key: like_{post_id}_{liker_id}
   notification_action_key := 'like_' || NEW.post_id || '_' || NEW.user_id;
   
-  -- Delete any existing notification with this action key (if user already liked before)
-  DELETE FROM notifications WHERE action_key = notification_action_key;
+  -- Check if notification already exists
+  SELECT id INTO existing_notification_id
+  FROM notifications
+  WHERE action_key = notification_action_key;
   
-  -- Create notification with XP info
-  INSERT INTO notifications (user_id, type, title, message, metadata, action_key)
-  VALUES (
-    post_owner_id,
-    'like',
-    'Nuevo me gusta',
-    liker_username || ' le gustó tu publicación (+5 XP)',
-    jsonb_build_object(
-      'from_user', liker_username,
-      'from_user_id', NEW.user_id,
-      'from_user_avatar', liker_avatar,
-      'post_id', NEW.post_id,
-      'post_preview', SUBSTRING(post_content, 1, 100),
-      'post_media', post_media,
-      'xp_gained', 5
-    ),
-    notification_action_key
-  );
+  -- If notification exists, just update the timestamp and mark as unread
+  IF existing_notification_id IS NOT NULL THEN
+    UPDATE notifications
+    SET created_at = NOW(),
+        is_read = false,
+        updated_at = NOW()
+    WHERE id = existing_notification_id;
+  ELSE
+    -- Create new notification with XP info
+    INSERT INTO notifications (user_id, type, title, message, metadata, action_key)
+    VALUES (
+      post_owner_id,
+      'like',
+      'Nuevo me gusta',
+      liker_username || ' le gustó tu publicación (+5 XP)',
+      jsonb_build_object(
+        'from_user', liker_username,
+        'from_user_id', NEW.user_id,
+        'from_user_avatar', liker_avatar,
+        'post_id', NEW.post_id,
+        'post_preview', SUBSTRING(post_content, 1, 100),
+        'post_media', post_media,
+        'xp_gained', 5
+      ),
+      notification_action_key
+    );
+  END IF;
   
   RETURN NEW;
 END;
