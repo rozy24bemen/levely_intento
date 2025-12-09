@@ -237,8 +237,32 @@ BEGIN
       );
     EXCEPTION
       WHEN unique_violation THEN
-        -- Notification was just created by another process, ignore
-        NULL;
+        -- Notification was just created by another process, update it instead
+        SELECT COUNT(*) INTO like_count
+        FROM likes
+        WHERE post_id = NEW.post_id;
+        
+        UPDATE notifications
+        SET 
+          message = CASE
+            WHEN like_count = 1 THEN liker_username || ' le gustó tu publicación (+5 XP)'
+            WHEN like_count = 2 THEN liker_username || ' y 1 usuario más les gustó tu publicación (+' || (like_count * 5) || ' XP)'
+            ELSE liker_username || ' y ' || (like_count - 1) || ' usuarios más les gustó tu publicación (+' || (like_count * 5) || ' XP)'
+          END,
+          metadata = jsonb_set(
+            jsonb_set(
+              jsonb_set(
+                metadata,
+                '{from_user}', to_jsonb(liker_username)
+              ),
+              '{from_user_avatar}', to_jsonb(liker_avatar)
+            ),
+            '{like_count}', to_jsonb(like_count)
+          ),
+          is_read = false,
+          created_at = NOW(),
+          updated_at = NOW()
+        WHERE action_key = notification_action_key;
     END;
   END IF;
   
