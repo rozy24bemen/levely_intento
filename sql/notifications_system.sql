@@ -258,12 +258,63 @@ CREATE OR REPLACE FUNCTION delete_like_notification()
 RETURNS TRIGGER AS $$
 DECLARE
   notification_action_key TEXT;
+  remaining_likes INTEGER;
+  latest_liker_username TEXT;
+  latest_liker_avatar TEXT;
+  latest_liker_id UUID;
+  existing_metadata JSONB;
+  notification_id UUID;
 BEGIN
-  -- Create the same action key used when creating the notification
-  notification_action_key := 'like_' || OLD.post_id || '_' || OLD.user_id;
+  -- Create the same action key used when creating the notification (per post)
+  notification_action_key := 'like_' || OLD.post_id;
   
-  -- Delete the notification using the action key
-  DELETE FROM notifications WHERE action_key = notification_action_key;
+  -- Check how many likes remain for this post
+  SELECT COUNT(*) INTO remaining_likes
+  FROM likes
+  WHERE post_id = OLD.post_id;
+  
+  IF remaining_likes = 0 THEN
+    -- No likes left, delete the notification
+    DELETE FROM notifications WHERE action_key = notification_action_key;
+  ELSE
+    -- Still have likes, update the notification with new count and latest liker
+    -- Get the most recent liker (not the one being deleted)
+    SELECT l.user_id, p.username, p.avatar_url 
+    INTO latest_liker_id, latest_liker_username, latest_liker_avatar
+    FROM likes l
+    JOIN profiles p ON l.user_id = p.id
+    WHERE l.post_id = OLD.post_id
+    ORDER BY l.created_at DESC
+    LIMIT 1;
+    
+    -- Get existing notification
+    SELECT id, metadata INTO notification_id, existing_metadata
+    FROM notifications
+    WHERE action_key = notification_action_key;
+    
+    IF notification_id IS NOT NULL THEN
+      -- Update notification with new count
+      UPDATE notifications
+      SET 
+        message = CASE
+          WHEN remaining_likes = 1 THEN latest_liker_username || ' le gustó tu publicación (+5 XP)'
+          WHEN remaining_likes = 2 THEN latest_liker_username || ' y 1 usuario más les gustó tu publicación (+' || (remaining_likes * 5) || ' XP)'
+          ELSE latest_liker_username || ' y ' || (remaining_likes - 1) || ' usuarios más les gustó tu publicación (+' || (remaining_likes * 5) || ' XP)'
+        END,
+        metadata = jsonb_set(
+          jsonb_set(
+            jsonb_set(
+              existing_metadata,
+              '{from_user}', to_jsonb(latest_liker_username)
+            ),
+            '{from_user_avatar}', to_jsonb(latest_liker_avatar)
+          ),
+          '{like_count}', to_jsonb(remaining_likes)
+        ),
+        updated_at = NOW()
+      WHERE id = notification_id;
+    END IF;
+  END IF;
   
   RETURN OLD;
 END;
