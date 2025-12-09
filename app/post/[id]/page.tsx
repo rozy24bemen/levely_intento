@@ -53,7 +53,6 @@ export default async function PostPage({ params }: PageProps) {
         <PostCard
           post={post}
           currentUserId={user.id}
-          showFullContent={true}
         />
       </div>
     </div>
