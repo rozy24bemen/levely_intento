@@ -211,14 +211,14 @@ BEGIN
   WHERE id = NEW.post_id;
   
   -- Don't notify if user comments on their own post
-  IF post_owner_id = NEW.user_id THEN
+  IF post_owner_id = NEW.author_id THEN
     RETURN NEW;
   END IF;
   
   -- Get commenter info
   SELECT username, avatar_url INTO commenter_username, commenter_avatar
   FROM profiles
-  WHERE id = NEW.user_id;
+  WHERE id = NEW.author_id;
   
   -- Create notification
   INSERT INTO notifications (user_id, type, title, message, metadata)
@@ -229,7 +229,7 @@ BEGIN
     commenter_username || ' comentó en tu publicación',
     jsonb_build_object(
       'from_user', commenter_username,
-      'from_user_id', NEW.user_id,
+      'from_user_id', NEW.author_id,
       'from_user_avatar', commenter_avatar,
       'post_id', NEW.post_id,
       'post_preview', SUBSTRING(post_content, 1, 100),
