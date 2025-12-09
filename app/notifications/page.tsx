@@ -19,6 +19,8 @@ type Notification = {
   created_at: string
   metadata?: {
     xp_amount?: number
+    new_level?: number
+    old_level?: number
     from_user?: string
     from_user_id?: string
     from_user_avatar?: string
