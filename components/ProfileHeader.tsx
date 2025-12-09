@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useRef } from 'react'
-import { Edit2, Check, X, Camera, MessageCircle } from 'lucide-react'
+import { useState, useRef, useEffect } from 'react'
+import { Edit2, Check, X, Camera, MessageCircle, UserPlus, UserMinus } from 'lucide-react'
 import { createClient } from '@/lib/supabase/browserClient'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
@@ -14,6 +14,8 @@ type Profile = {
   avatar_url: string | null
   level: number
   xp: number
+  followers_count: number
+  following_count: number
   created_at: string
 }
 
@@ -23,7 +25,7 @@ type ProfileHeaderProps = {
   currentUserId?: string
 }
 
-export default function ProfileHeader({ profile, isOwnProfile }: ProfileHeaderProps) {
+export default function ProfileHeader({ profile, isOwnProfile, currentUserId }: ProfileHeaderProps) {
   const [isEditing, setIsEditing] = useState(false)
   const [username, setUsername] = useState(profile.username)
   const [bio, setBio] = useState(profile.bio || '')
@@ -32,9 +34,31 @@ export default function ProfileHeader({ profile, isOwnProfile }: ProfileHeaderPr
   const [uploadingAvatar, setUploadingAvatar] = useState(false)
   const [showCropModal, setShowCropModal] = useState(false)
   const [selectedImageUrl, setSelectedImageUrl] = useState<string | null>(null)
+  const [isFollowing, setIsFollowing] = useState(false)
+  const [followersCount, setFollowersCount] = useState(profile.followers_count)
+  const [followingCount, setFollowingCount] = useState(profile.following_count)
+  const [followLoading, setFollowLoading] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const supabase = createClient()
   const router = useRouter()
+
+  // Check if current user is following this profile
+  useEffect(() => {
+    const checkFollowStatus = async () => {
+      if (!currentUserId || isOwnProfile) return
+
+      const { data } = await supabase
+        .from('follows')
+        .select('id')
+        .eq('follower_id', currentUserId)
+        .eq('following_id', profile.id)
+        .maybeSingle()
+
+      setIsFollowing(!!data)
+    }
+
+    checkFollowStatus()
+  }, [currentUserId, profile.id, isOwnProfile, supabase])
 
   const handleAvatarClick = () => {
     if (isOwnProfile && fileInputRef.current) {
@@ -171,6 +195,44 @@ export default function ProfileHeader({ profile, isOwnProfile }: ProfileHeaderPr
     }
   }
 
+  const handleFollow = async () => {
+    if (!currentUserId || followLoading) return
+
+    setFollowLoading(true)
+    try {
+      if (isFollowing) {
+        // Unfollow
+        const { error } = await supabase
+          .from('follows')
+          .delete()
+          .eq('follower_id', currentUserId)
+          .eq('following_id', profile.id)
+
+        if (error) throw error
+
+        setIsFollowing(false)
+        setFollowersCount(prev => prev - 1)
+      } else {
+        // Follow
+        const { error } = await supabase
+          .from('follows')
+          .insert({
+            follower_id: currentUserId,
+            following_id: profile.id,
+          })
+
+        if (error) throw error
+
+        setIsFollowing(true)
+        setFollowersCount(prev => prev + 1)
+      }
+    } catch (error) {
+      console.error('Error toggling follow:', error)
+    } finally {
+      setFollowLoading(false)
+    }
+  }
+
   return (
     <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
       <div className="flex items-start gap-6">
@@ -234,16 +296,52 @@ export default function ProfileHeader({ profile, isOwnProfile }: ProfileHeaderPr
                     <Edit2 className="w-5 h-5" />
                   </button>
                 ) : (
-                  <button
-                    onClick={handleSendMessage}
-                    className="ml-auto flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium"
-                    title="Enviar mensaje"
-                  >
-                    <MessageCircle className="w-5 h-5" />
-                    <span>Enviar mensaje</span>
-                  </button>
+                  <div className="ml-auto flex items-center gap-2">
+                    <button
+                      onClick={handleFollow}
+                      disabled={followLoading}
+                      className={`flex items-center gap-2 px-4 py-2 rounded-lg transition font-medium disabled:opacity-50 ${
+                        isFollowing
+                          ? 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                          : 'bg-blue-600 text-white hover:bg-blue-700'
+                      }`}
+                      title={isFollowing ? 'Dejar de seguir' : 'Seguir'}
+                    >
+                      {isFollowing ? (
+                        <>
+                          <UserMinus className="w-5 h-5" />
+                          <span>Siguiendo</span>
+                        </>
+                      ) : (
+                        <>
+                          <UserPlus className="w-5 h-5" />
+                          <span>Seguir</span>
+                        </>
+                      )}
+                    </button>
+                    <button
+                      onClick={handleSendMessage}
+                      className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition font-medium"
+                      title="Enviar mensaje"
+                    >
+                      <MessageCircle className="w-5 h-5" />
+                    </button>
+                  </div>
                 )}
               </div>
+              
+              {/* Stats */}
+              <div className="flex items-center gap-6 mb-3">
+                <div className="text-center">
+                  <p className="text-2xl font-bold text-gray-900">{followersCount}</p>
+                  <p className="text-sm text-gray-600">Seguidores</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-2xl font-bold text-gray-900">{followingCount}</p>
+                  <p className="text-sm text-gray-600">Siguiendo</p>
+                </div>
+              </div>
+              
               {profile.bio && (
                 <p className="text-gray-700 mb-3">{profile.bio}</p>
               )}

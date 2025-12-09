@@ -14,25 +14,59 @@ export default async function Home({ searchParams }: PageProps) {
   
   const { data: { user } } = await supabase.auth.getUser()
   
-  const { data: postsData, error } = await supabase
-    .from('posts')
-    .select(`
-      id,
-      content,
-      created_at,
-      likes_count,
-      comments_count,
-      media_url,
-      media_type,
-      profiles!posts_author_id_fkey (
+  let postsData, error
+  
+  if (user) {
+    // Get posts from users you follow + your own posts
+    const { data, error: fetchError } = await supabase
+      .from('posts')
+      .select(`
         id,
-        username,
-        avatar_url,
-        level
-      )
-    `)
-    .order('created_at', { ascending: false })
-    .limit(20)
+        content,
+        created_at,
+        likes_count,
+        comments_count,
+        media_url,
+        media_type,
+        author_id,
+        profiles!posts_author_id_fkey (
+          id,
+          username,
+          avatar_url,
+          level
+        )
+      `)
+      .or(`author_id.eq.${user.id},author_id.in.(select following_id from follows where follower_id = '${user.id}')`)
+      .order('created_at', { ascending: false })
+      .limit(20)
+
+    postsData = data
+    error = fetchError
+  } else {
+    // Show all posts for non-authenticated users
+    const { data, error: fetchError } = await supabase
+      .from('posts')
+      .select(`
+        id,
+        content,
+        created_at,
+        likes_count,
+        comments_count,
+        media_url,
+        media_type,
+        profiles!posts_author_id_fkey (
+          id,
+          username,
+          avatar_url,
+          level
+        )
+      `)
+      .order('created_at', { ascending: false })
+      .limit(20)
+
+    postsData = data
+    error = fetchError
+  }
 
   // Transform the data to match our Post type (profiles is returned as array, we need object)
   const posts = postsData?.map((post: any) => ({

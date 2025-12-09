@@ -1,6 +1,6 @@
 'use client'
 
-import { Heart, MessageCircle, Share2, X } from 'lucide-react'
+import { Heart, MessageCircle, Share2, X, UserPlus, UserCheck } from 'lucide-react'
 import { useState, useRef, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/browserClient'
 import type { Short } from '@/lib/types'
@@ -23,6 +23,8 @@ export default function ShortCard({ short, currentUserId, isActive }: ShortCardP
   const [currentTime, setCurrentTime] = useState(0)
   const [duration, setDuration] = useState(0)
   const [showControls, setShowControls] = useState(false)
+  const [isFollowing, setIsFollowing] = useState(false)
+  const [followLoading, setFollowLoading] = useState(false)
   const videoRef = useRef<HTMLVideoElement>(null)
   const progressBarRef = useRef<HTMLDivElement>(null)
   const supabase = createClient()
@@ -44,6 +46,24 @@ export default function ShortCard({ short, currentUserId, isActive }: ShortCardP
     
     checkIfLiked()
   }, [currentUserId, short.id, supabase])
+
+  // Check if current user is following the author
+  useEffect(() => {
+    const checkFollowStatus = async () => {
+      if (!currentUserId || currentUserId === short.author_id) return
+
+      const { data } = await supabase
+        .from('follows')
+        .select('id')
+        .eq('follower_id', currentUserId)
+        .eq('following_id', short.author_id)
+        .maybeSingle()
+
+      setIsFollowing(!!data)
+    }
+
+    checkFollowStatus()
+  }, [currentUserId, short.author_id, supabase])
 
   // Auto play/pause based on visibility
   useEffect(() => {
@@ -157,6 +177,40 @@ export default function ShortCard({ short, currentUserId, isActive }: ShortCardP
     }
   }
 
+  const handleFollow = async () => {
+    if (!currentUserId || followLoading || currentUserId === short.author_id) return
+
+    setFollowLoading(true)
+    try {
+      if (isFollowing) {
+        // Unfollow
+        const { error } = await supabase
+          .from('follows')
+          .delete()
+          .eq('follower_id', currentUserId)
+          .eq('following_id', short.author_id)
+
+        if (error) throw error
+        setIsFollowing(false)
+      } else {
+        // Follow
+        const { error } = await supabase
+          .from('follows')
+          .insert({
+            follower_id: currentUserId,
+            following_id: short.author_id,
+          })
+
+        if (error) throw error
+        setIsFollowing(true)
+      }
+    } catch (error) {
+      console.error('Error toggling follow:', error)
+    } finally {
+      setFollowLoading(false)
+    }
+  }
+
   return (
     <div 
       className="relative w-full h-[100dvh] snap-start snap-always flex items-center justify-center bg-black overflow-hidden"
@@ -203,22 +257,49 @@ export default function ShortCard({ short, currentUserId, isActive }: ShortCardP
       {/* Content info (bottom left) */}
       <div className="absolute bottom-20 left-4 right-20 space-y-3">
         {/* Author info */}
-        <Link 
-          href={`/profile/${short.author_id}`}
-          className="flex items-center gap-3 hover:opacity-80 transition-opacity w-fit"
-        >
-          <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-600 rounded-full flex items-center justify-center text-white font-bold border-2 border-white shadow-lg">
-            {short.profiles?.username?.[0]?.toUpperCase() || 'U'}
-          </div>
-          <div>
-            <p className="text-white font-semibold text-sm drop-shadow-lg">
-              {short.profiles?.username || 'Usuario'}
-            </p>
-            <p className="text-white/80 text-xs drop-shadow-lg">
-              Nivel {short.profiles?.level || 1}
-            </p>
-          </div>
-        </Link>
+        <div className="flex items-center gap-3">
+          <Link 
+            href={`/profile/${short.author_id}`}
+            className="flex items-center gap-3 hover:opacity-80 transition-opacity flex-1"
+          >
+            <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-600 rounded-full flex items-center justify-center text-white font-bold border-2 border-white shadow-lg">
+              {short.profiles?.username?.[0]?.toUpperCase() || 'U'}
+            </div>
+            <div>
+              <p className="text-white font-semibold text-sm drop-shadow-lg">
+                {short.profiles?.username || 'Usuario'}
+              </p>
+              <p className="text-white/80 text-xs drop-shadow-lg">
+                Nivel {short.profiles?.level || 1}
+              </p>
+            </div>
+          </Link>
+          
+          {/* Follow button */}
+          {currentUserId && currentUserId !== short.author_id && (
+            <button
+              onClick={handleFollow}
+              disabled={followLoading}
+              className={`px-4 py-1.5 rounded-full text-sm font-semibold transition-all disabled:opacity-50 ${
+                isFollowing
+                  ? 'bg-white/20 text-white backdrop-blur-sm hover:bg-white/30'
+                  : 'bg-blue-600 text-white hover:bg-blue-700'
+              }`}
+            >
+              {isFollowing ? (
+                <span className="flex items-center gap-1">
+                  <UserCheck className="w-4 h-4" />
+                  Siguiendo
+                </span>
+              ) : (
+                <span className="flex items-center gap-1">
+                  <UserPlus className="w-4 h-4" />
+                  Seguir
+                </span>
+              )}
+            </button>
+          )}
+        </div>
 
         {/* Title and description */}
         {short.title && (

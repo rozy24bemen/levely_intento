@@ -6,6 +6,8 @@ export type Profile = {
   avatar_url: string | null
   level: number
   xp: number
+  followers_count: number
+  following_count: number
   created_at: string
   updated_at: string
 }
