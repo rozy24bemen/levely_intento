@@ -14,12 +14,15 @@ CREATE TABLE IF NOT EXISTS notifications (
 -- Add action_key column if it doesn't exist
 ALTER TABLE notifications ADD COLUMN IF NOT EXISTS action_key TEXT;
 
+-- Create unique constraint on action_key to prevent duplicates
+-- Drop first in case it exists
+ALTER TABLE notifications DROP CONSTRAINT IF EXISTS unique_action_key;
+ALTER TABLE notifications ADD CONSTRAINT unique_action_key UNIQUE (action_key);
+
 -- Create index for better query performance
 CREATE INDEX IF NOT EXISTS idx_notifications_user_id ON notifications(user_id);
 CREATE INDEX IF NOT EXISTS idx_notifications_created_at ON notifications(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_notifications_is_read ON notifications(user_id, is_read) WHERE is_read = false;
--- Index for action_key to make lookups and deletes faster
-CREATE INDEX IF NOT EXISTS idx_notifications_action_key ON notifications(action_key) WHERE action_key IS NOT NULL;
 
 -- Enable RLS
 ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
@@ -166,7 +169,6 @@ DECLARE
   post_content TEXT;
   post_media TEXT;
   notification_action_key TEXT;
-  existing_notification_id UUID;
 BEGIN
   -- Get post owner and content
   SELECT author_id, content, media_url INTO post_owner_id, post_content, post_media
@@ -186,20 +188,8 @@ BEGIN
   -- Create unique action key: like_{post_id}_{liker_id}
   notification_action_key := 'like_' || NEW.post_id || '_' || NEW.user_id;
   
-  -- Check if notification already exists
-  SELECT id INTO existing_notification_id
-  FROM notifications
-  WHERE action_key = notification_action_key;
-  
-  -- If notification exists, just update the timestamp and mark as unread
-  IF existing_notification_id IS NOT NULL THEN
-    UPDATE notifications
-    SET created_at = NOW(),
-        is_read = false,
-        updated_at = NOW()
-    WHERE id = existing_notification_id;
-  ELSE
-    -- Create new notification with XP info
+  -- Try to insert, if it fails due to duplicate action_key, ignore it
+  BEGIN
     INSERT INTO notifications (user_id, type, title, message, metadata, action_key)
     VALUES (
       post_owner_id,
@@ -217,7 +207,11 @@ BEGIN
       ),
       notification_action_key
     );
-  END IF;
+  EXCEPTION
+    WHEN unique_violation THEN
+      -- Notification already exists, do nothing
+      NULL;
+  END;
   
   RETURN NEW;
 END;
@@ -282,24 +276,30 @@ BEGIN
   -- Create unique action key: comment_{comment_id}
   notification_action_key := 'comment_' || NEW.id;
   
-  -- Create notification with XP info
-  INSERT INTO notifications (user_id, type, title, message, metadata, action_key)
-  VALUES (
-    post_owner_id,
-    'comment',
-    'Nuevo comentario',
-    commenter_username || ' comentó en tu publicación (+3 XP)',
-    jsonb_build_object(
-      'from_user', commenter_username,
-      'from_user_id', NEW.author_id,
-      'from_user_avatar', commenter_avatar,
-      'post_id', NEW.post_id,
-      'post_preview', SUBSTRING(post_content, 1, 100),
-      'post_media', post_media,
-      'xp_gained', 3
-    ),
-    notification_action_key
-  );
+  -- Try to insert, if it fails due to duplicate action_key, ignore it
+  BEGIN
+    INSERT INTO notifications (user_id, type, title, message, metadata, action_key)
+    VALUES (
+      post_owner_id,
+      'comment',
+      'Nuevo comentario',
+      commenter_username || ' comentó en tu publicación (+3 XP)',
+      jsonb_build_object(
+        'from_user', commenter_username,
+        'from_user_id', NEW.author_id,
+        'from_user_avatar', commenter_avatar,
+        'post_id', NEW.post_id,
+        'post_preview', SUBSTRING(post_content, 1, 100),
+        'post_media', post_media,
+        'xp_gained', 3
+      ),
+      notification_action_key
+    );
+  EXCEPTION
+    WHEN unique_violation THEN
+      -- Notification already exists, do nothing
+      NULL;
+  END;
   
   RETURN NEW;
 END;
