@@ -33,7 +33,7 @@ export default function ChatWindow({ conversationId, currentUserId }: ChatWindow
   const [uploadingImage, setUploadingImage] = useState(false)
   const [hoveredMessageId, setHoveredMessageId] = useState<string | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
-  const typingTimeoutRef = useRef<NodeJS.Timeout>()
+  const typingTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const router = useRouter()
   const supabase = createClient()
@@ -512,12 +512,6 @@ export default function ChatWindow({ conversationId, currentUserId }: ChatWindow
           >
             {sending ? (
               <Loader2 className="w-5 h-5 animate-spin" />
-            ) : (
-              <Send className="w-5 h-5" />
-            )}
-          </button>
-        </div>
-      </form>
             ) : (
               <Send className="w-5 h-5" />
             )}
