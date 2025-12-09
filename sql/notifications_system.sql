@@ -14,6 +14,13 @@ CREATE TABLE IF NOT EXISTS notifications (
 -- Add action_key column if it doesn't exist
 ALTER TABLE notifications ADD COLUMN IF NOT EXISTS action_key TEXT;
 
+-- Delete duplicate notifications keeping only the most recent one
+DELETE FROM notifications a
+USING notifications b
+WHERE a.action_key = b.action_key
+  AND a.action_key IS NOT NULL
+  AND a.id < b.id;
+
 -- Create unique constraint on action_key to prevent duplicates
 -- Drop first in case it exists
 ALTER TABLE notifications DROP CONSTRAINT IF EXISTS unique_action_key;
