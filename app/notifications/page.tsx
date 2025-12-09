@@ -19,6 +19,7 @@ type Notification = {
   created_at: string
   metadata?: {
     xp_amount?: number
+    xp_gained?: number
     new_level?: number
     old_level?: number
     from_user?: string
@@ -271,60 +272,70 @@ export default function NotificationsPage() {
 
                     {/* Like/Comment Notification with User and Post */}
                     {(notification.type === 'like' || notification.type === 'comment') && (
-                      <div className="mt-4 flex items-center gap-4">
-                        {/* User Info */}
-                        {notification.metadata?.from_user_id && (
-                          <Link
-                            href={`/profile/${notification.metadata.from_user_id}`}
-                            className="flex items-center gap-2 hover:bg-gray-100 rounded-lg p-2 transition"
-                            onClick={() => markAsRead(notification.id)}
-                          >
-                            <div className="relative w-10 h-10 rounded-full overflow-hidden bg-gray-200">
-                              {notification.metadata.from_user_avatar ? (
-                                <Image
-                                  src={notification.metadata.from_user_avatar}
-                                  alt={notification.metadata.from_user || 'Usuario'}
-                                  fill
-                                  className="object-cover"
-                                />
-                              ) : (
-                                <div className="w-full h-full flex items-center justify-center text-gray-500 font-semibold">
-                                  {notification.metadata.from_user?.charAt(0).toUpperCase()}
+                      <div className="mt-4 space-y-3">
+                        {/* XP Badge if included */}
+                        {notification.metadata?.xp_gained && (
+                          <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-gradient-to-r from-yellow-400 to-orange-500 text-white rounded-full text-xs font-bold shadow-sm">
+                            <Star className="w-3 h-3" />
+                            +{notification.metadata.xp_gained} XP
+                          </div>
+                        )}
+                        
+                        <div className="flex items-center gap-4">
+                          {/* User Info */}
+                          {notification.metadata?.from_user_id && (
+                            <Link
+                              href={`/profile/${notification.metadata.from_user_id}`}
+                              className="flex items-center gap-2 hover:bg-gray-100 rounded-lg p-2 transition"
+                              onClick={() => markAsRead(notification.id)}
+                            >
+                              <div className="relative w-10 h-10 rounded-full overflow-hidden bg-gray-200">
+                                {notification.metadata.from_user_avatar ? (
+                                  <Image
+                                    src={notification.metadata.from_user_avatar}
+                                    alt={notification.metadata.from_user || 'Usuario'}
+                                    fill
+                                    className="object-cover"
+                                  />
+                                ) : (
+                                  <div className="w-full h-full flex items-center justify-center text-gray-500 font-semibold">
+                                    {notification.metadata.from_user?.charAt(0).toUpperCase()}
+                                  </div>
+                                )}
+                              </div>
+                              <span className="font-medium text-gray-900 hover:text-blue-600">
+                                @{notification.metadata.from_user}
+                              </span>
+                            </Link>
+                          )}
+
+                          {/* Post Preview */}
+                          {notification.metadata?.post_id && (
+                            <button
+                              onClick={() => handleNotificationClick(notification)}
+                              className="flex-1 flex items-center gap-3 p-3 bg-gray-50 hover:bg-gray-100 rounded-lg border border-gray-200 transition text-left"
+                            >
+                              {notification.metadata.post_media && (
+                                <div className="relative w-16 h-16 rounded-lg overflow-hidden bg-gray-200 flex-shrink-0">
+                                  <Image
+                                    src={notification.metadata.post_media}
+                                    alt="Post"
+                                    fill
+                                    className="object-cover"
+                                  />
                                 </div>
                               )}
-                            </div>
-                            <span className="font-medium text-gray-900 hover:text-blue-600">
-                              @{notification.metadata.from_user}
-                            </span>
-                          </Link>
-                        )}
-
-                        {/* Post Preview */}
-                        {notification.metadata?.post_id && (
-                          <button
-                            onClick={() => handleNotificationClick(notification)}
-                            className="flex-1 flex items-center gap-3 p-3 bg-gray-50 hover:bg-gray-100 rounded-lg border border-gray-200 transition text-left"
-                          >
-                            {notification.metadata.post_media && (
-                              <div className="relative w-16 h-16 rounded-lg overflow-hidden bg-gray-200 flex-shrink-0">
-                                <Image
-                                  src={notification.metadata.post_media}
-                                  alt="Post"
-                                  fill
-                                  className="object-cover"
-                                />
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm text-gray-600 line-clamp-2">
+                                  {notification.metadata.post_preview || 'Ver publicación'}
+                                </p>
+                                <span className="text-xs text-blue-600 font-medium mt-1 inline-block">
+                                  Ver publicación →
+                                </span>
                               </div>
-                            )}
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm text-gray-600 line-clamp-2">
-                                {notification.metadata.post_preview || 'Ver publicación'}
-                              </p>
-                              <span className="text-xs text-blue-600 font-medium mt-1 inline-block">
-                                Ver publicación →
-                              </span>
-                            </div>
-                          </button>
-                        )}
+                            </button>
+                          )}
+                        </div>
                       </div>
                     )}
 

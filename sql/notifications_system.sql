@@ -66,24 +66,12 @@ DECLARE
   xp_diff INTEGER;
   old_level INTEGER;
   new_level INTEGER;
+  recent_notification BOOLEAN;
 BEGIN
   -- Calculate XP difference
   xp_diff := NEW.xp - OLD.xp;
   
-  -- Only create notification if XP increased
-  IF xp_diff > 0 THEN
-    -- Create XP gained notification
-    INSERT INTO notifications (user_id, type, title, message, metadata)
-    VALUES (
-      NEW.id,
-      'xp_gained',
-      '¡Ganaste experiencia!',
-      'Has ganado ' || xp_diff || ' puntos de experiencia',
-      jsonb_build_object('xp_amount', xp_diff)
-    );
-  END IF;
-  
-  -- Check for level up
+  -- Check for level up first (this should always notify)
   old_level := OLD.level;
   new_level := NEW.level;
   
@@ -94,8 +82,29 @@ BEGIN
       'level_up',
       '¡Subiste de nivel!',
       '¡Felicidades! Ahora eres nivel ' || new_level,
-      jsonb_build_object('new_level', new_level, 'old_level', old_level)
+      jsonb_build_object('new_level', new_level, 'old_level', old_level, 'xp_gained', xp_diff)
     );
+  -- Only create standalone XP notification if XP increased and NO recent action notification exists
+  ELSIF xp_diff > 0 THEN
+    -- Check if there's a recent like or comment notification (within last 2 seconds)
+    SELECT EXISTS (
+      SELECT 1 FROM notifications
+      WHERE user_id = NEW.id
+      AND type IN ('like', 'comment')
+      AND created_at > NOW() - INTERVAL '2 seconds'
+    ) INTO recent_notification;
+    
+    -- Only create XP notification if no recent action notification
+    IF NOT recent_notification THEN
+      INSERT INTO notifications (user_id, type, title, message, metadata)
+      VALUES (
+        NEW.id,
+        'xp_gained',
+        '¡Ganaste experiencia!',
+        'Has ganado ' || xp_diff || ' puntos de experiencia',
+        jsonb_build_object('xp_amount', xp_diff)
+      );
+    END IF;
   END IF;
   
   RETURN NEW;
@@ -167,20 +176,21 @@ BEGIN
   FROM profiles
   WHERE id = NEW.user_id;
   
-  -- Create notification
+  -- Create notification with XP info
   INSERT INTO notifications (user_id, type, title, message, metadata)
   VALUES (
     post_owner_id,
     'like',
     'Nuevo me gusta',
-    liker_username || ' le gustó tu publicación',
+    liker_username || ' le gustó tu publicación (+5 XP)',
     jsonb_build_object(
       'from_user', liker_username,
       'from_user_id', NEW.user_id,
       'from_user_avatar', liker_avatar,
       'post_id', NEW.post_id,
       'post_preview', SUBSTRING(post_content, 1, 100),
-      'post_media', post_media
+      'post_media', post_media,
+      'xp_gained', 5
     )
   );
   
@@ -194,6 +204,27 @@ CREATE TRIGGER like_notification_trigger
 AFTER INSERT ON likes
 FOR EACH ROW
 EXECUTE FUNCTION create_like_notification();
+
+-- Function to delete like notification when like is removed
+CREATE OR REPLACE FUNCTION delete_like_notification()
+RETURNS TRIGGER AS $$
+BEGIN
+  -- Delete the notification for this specific like
+  DELETE FROM notifications
+  WHERE type = 'like'
+  AND metadata->>'post_id' = OLD.post_id::text
+  AND metadata->>'from_user_id' = OLD.user_id::text;
+  
+  RETURN OLD;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Trigger to delete like notification when like is removed
+DROP TRIGGER IF EXISTS delete_like_notification_trigger ON likes;
+CREATE TRIGGER delete_like_notification_trigger
+AFTER DELETE ON likes
+FOR EACH ROW
+EXECUTE FUNCTION delete_like_notification();
 
 -- Function to create comment notification
 CREATE OR REPLACE FUNCTION create_comment_notification()
@@ -220,20 +251,21 @@ BEGIN
   FROM profiles
   WHERE id = NEW.author_id;
   
-  -- Create notification
+  -- Create notification with XP info
   INSERT INTO notifications (user_id, type, title, message, metadata)
   VALUES (
     post_owner_id,
     'comment',
     'Nuevo comentario',
-    commenter_username || ' comentó en tu publicación',
+    commenter_username || ' comentó en tu publicación (+3 XP)',
     jsonb_build_object(
       'from_user', commenter_username,
       'from_user_id', NEW.author_id,
       'from_user_avatar', commenter_avatar,
       'post_id', NEW.post_id,
       'post_preview', SUBSTRING(post_content, 1, 100),
-      'post_media', post_media
+      'post_media', post_media,
+      'xp_gained', 3
     )
   );
   
@@ -247,3 +279,24 @@ CREATE TRIGGER comment_notification_trigger
 AFTER INSERT ON comments
 FOR EACH ROW
 EXECUTE FUNCTION create_comment_notification();
+
+-- Function to delete comment notification when comment is removed
+CREATE OR REPLACE FUNCTION delete_comment_notification()
+RETURNS TRIGGER AS $$
+BEGIN
+  -- Delete the notification for this specific comment
+  DELETE FROM notifications
+  WHERE type = 'comment'
+  AND metadata->>'post_id' = OLD.post_id::text
+  AND metadata->>'from_user_id' = OLD.author_id::text;
+  
+  RETURN OLD;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Trigger to delete comment notification when comment is removed
+DROP TRIGGER IF EXISTS delete_comment_notification_trigger ON comments;
+CREATE TRIGGER delete_comment_notification_trigger
+AFTER DELETE ON comments
+FOR EACH ROW
+EXECUTE FUNCTION delete_comment_notification();
