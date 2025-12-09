@@ -8,13 +8,17 @@ CREATE TABLE IF NOT EXISTS notifications (
   is_read BOOLEAN DEFAULT false,
   metadata JSONB,
   created_at TIMESTAMPTZ DEFAULT now(),
-  updated_at TIMESTAMPTZ DEFAULT now()
+  updated_at TIMESTAMPTZ DEFAULT now(),
+  -- Unique identifier for the action (prevents duplicates)
+  action_key TEXT
 );
 
 -- Create index for better query performance
 CREATE INDEX IF NOT EXISTS idx_notifications_user_id ON notifications(user_id);
 CREATE INDEX IF NOT EXISTS idx_notifications_created_at ON notifications(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_notifications_is_read ON notifications(user_id, is_read) WHERE is_read = false;
+-- Index for action_key to make lookups and deletes faster
+CREATE INDEX IF NOT EXISTS idx_notifications_action_key ON notifications(action_key) WHERE action_key IS NOT NULL;
 
 -- Enable RLS
 ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
@@ -160,6 +164,7 @@ DECLARE
   post_owner_id UUID;
   post_content TEXT;
   post_media TEXT;
+  notification_action_key TEXT;
 BEGIN
   -- Get post owner and content
   SELECT author_id, content, media_url INTO post_owner_id, post_content, post_media
@@ -176,8 +181,14 @@ BEGIN
   FROM profiles
   WHERE id = NEW.user_id;
   
+  -- Create unique action key: like_{post_id}_{liker_id}
+  notification_action_key := 'like_' || NEW.post_id || '_' || NEW.user_id;
+  
+  -- Delete any existing notification with this action key (if user already liked before)
+  DELETE FROM notifications WHERE action_key = notification_action_key;
+  
   -- Create notification with XP info
-  INSERT INTO notifications (user_id, type, title, message, metadata)
+  INSERT INTO notifications (user_id, type, title, message, metadata, action_key)
   VALUES (
     post_owner_id,
     'like',
@@ -191,7 +202,8 @@ BEGIN
       'post_preview', SUBSTRING(post_content, 1, 100),
       'post_media', post_media,
       'xp_gained', 5
-    )
+    ),
+    notification_action_key
   );
   
   RETURN NEW;
@@ -208,13 +220,14 @@ EXECUTE FUNCTION create_like_notification();
 -- Function to delete like notification when like is removed
 CREATE OR REPLACE FUNCTION delete_like_notification()
 RETURNS TRIGGER AS $$
+DECLARE
+  notification_action_key TEXT;
 BEGIN
-  -- Delete the notification for this specific like
-  DELETE FROM notifications
-  WHERE type = 'like'
-  AND user_id = (SELECT author_id FROM posts WHERE id = OLD.post_id)
-  AND metadata->>'post_id' = OLD.post_id::text
-  AND metadata->>'from_user_id' = OLD.user_id::text;
+  -- Create the same action key used when creating the notification
+  notification_action_key := 'like_' || OLD.post_id || '_' || OLD.user_id;
+  
+  -- Delete the notification using the action key
+  DELETE FROM notifications WHERE action_key = notification_action_key;
   
   RETURN OLD;
 END;
@@ -236,6 +249,7 @@ DECLARE
   post_owner_id UUID;
   post_content TEXT;
   post_media TEXT;
+  notification_action_key TEXT;
 BEGIN
   -- Get post owner and content
   SELECT author_id, content, media_url INTO post_owner_id, post_content, post_media
@@ -252,8 +266,11 @@ BEGIN
   FROM profiles
   WHERE id = NEW.author_id;
   
+  -- Create unique action key: comment_{comment_id}
+  notification_action_key := 'comment_' || NEW.id;
+  
   -- Create notification with XP info
-  INSERT INTO notifications (user_id, type, title, message, metadata)
+  INSERT INTO notifications (user_id, type, title, message, metadata, action_key)
   VALUES (
     post_owner_id,
     'comment',
@@ -267,7 +284,8 @@ BEGIN
       'post_preview', SUBSTRING(post_content, 1, 100),
       'post_media', post_media,
       'xp_gained', 3
-    )
+    ),
+    notification_action_key
   );
   
   RETURN NEW;
@@ -284,13 +302,14 @@ EXECUTE FUNCTION create_comment_notification();
 -- Function to delete comment notification when comment is removed
 CREATE OR REPLACE FUNCTION delete_comment_notification()
 RETURNS TRIGGER AS $$
+DECLARE
+  notification_action_key TEXT;
 BEGIN
-  -- Delete the notification for this specific comment
-  DELETE FROM notifications
-  WHERE type = 'comment'
-  AND user_id = (SELECT author_id FROM posts WHERE id = OLD.post_id)
-  AND metadata->>'post_id' = OLD.post_id::text
-  AND metadata->>'from_user_id' = OLD.author_id::text;
+  -- Create the same action key used when creating the notification
+  notification_action_key := 'comment_' || OLD.id;
+  
+  -- Delete the notification using the action key
+  DELETE FROM notifications WHERE action_key = notification_action_key;
   
   RETURN OLD;
 END;

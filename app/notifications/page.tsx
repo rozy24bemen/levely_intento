@@ -35,7 +35,6 @@ type Notification = {
 export default function NotificationsPage() {
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [loading, setLoading] = useState(true)
-  const [filter, setFilter] = useState<'all' | 'unread'>('all')
   const supabase = createClient()
   const router = useRouter()
 
@@ -56,7 +55,7 @@ export default function NotificationsPage() {
     }
     
     markAllAsReadOnLoad()
-  }, [filter])
+  }, [])
 
   const loadNotifications = async () => {
     try {
@@ -64,17 +63,11 @@ export default function NotificationsPage() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
 
-      let query = supabase
+      const { data, error } = await supabase
         .from('notifications')
         .select('*')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
-
-      if (filter === 'unread') {
-        query = query.eq('is_read', false)
-      }
-
-      const { data, error } = await query
 
       if (error) throw error
 
@@ -180,37 +173,8 @@ export default function NotificationsPage() {
         <div className="mb-6">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Notificaciones</h1>
           <p className="text-gray-600">
-            {unreadCount > 0 ? `Tienes ${unreadCount} notificación${unreadCount !== 1 ? 'es' : ''} sin leer` : 'Todas las notificaciones leídas'}
+            Todas tus notificaciones
           </p>
-        </div>
-
-        {/* Filters and Actions */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
-          <div className="flex items-center justify-between flex-wrap gap-4">
-            {/* Filter buttons */}
-            <div className="flex gap-2">
-              <button
-                onClick={() => setFilter('all')}
-                className={`px-4 py-2 rounded-lg font-medium transition ${
-                  filter === 'all'
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                Todas
-              </button>
-              <button
-                onClick={() => setFilter('unread')}
-                className={`px-4 py-2 rounded-lg font-medium transition ${
-                  filter === 'unread'
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                No leídas
-              </button>
-            </div>
-          </div>
         </div>
 
         {/* Notifications List */}
