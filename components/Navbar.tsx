@@ -6,6 +6,7 @@ import { LogOut, Home, User, Zap, Search, MessageCircle } from 'lucide-react'
 import Link from 'next/link'
 import Image from 'next/image'
 import UnreadMessagesCount from './UnreadMessagesCount'
+import NotificationsDropdown from './NotificationsDropdown'
 
 type NavbarProps = {
   user: {
@@ -72,6 +73,9 @@ export default function Navbar({ user, profile }: NavbarProps) {
                   <Search className="w-5 h-5" />
                   <span className="hidden sm:inline">Buscar</span>
                 </Link>
+
+                {/* Notifications */}
+                <NotificationsDropdown userId={user.id} />
 
                 {/* Messages Link */}
                 <Link

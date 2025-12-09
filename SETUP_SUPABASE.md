@@ -9,12 +9,26 @@
 
 ### 2. Ejecuta los siguientes scripts SQL en orden:
 
-#### A. Agregar soporte para imágenes en mensajes
+#### A. Sistema de notificaciones (NUEVO - EJECUTAR PRIMERO)
+```sql
+-- Ejecuta todo el contenido del archivo: sql/notifications_system.sql
+```
+Este script crea:
+- Tabla `notifications` con RLS
+- Triggers automáticos para notificaciones de:
+  - Ganancia de XP
+  - Subida de nivel
+  - Nuevos mensajes
+  - Me gusta en publicaciones
+  - Nuevos seguidores
+- Realtime habilitado
+
+#### B. Agregar soporte para imágenes en mensajes
 ```sql
 -- Ejecuta todo el contenido del archivo: sql/add_image_support.sql
 ```
 
-#### B. Agregar soporte para eliminar mensajes
+#### C. Agregar soporte para eliminar mensajes
 ```sql
 -- Ejecuta todo el contenido del archivo: sql/add_delete_support.sql
 ```
