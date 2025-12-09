@@ -19,6 +19,12 @@ CREATE INDEX IF NOT EXISTS idx_notifications_is_read ON notifications(user_id, i
 -- Enable RLS
 ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
 
+-- Drop existing policies if they exist
+DROP POLICY IF EXISTS "Users can view their own notifications" ON notifications;
+DROP POLICY IF EXISTS "Users can update their own notifications" ON notifications;
+DROP POLICY IF EXISTS "Users can delete their own notifications" ON notifications;
+DROP POLICY IF EXISTS "System can insert notifications" ON notifications;
+
 -- Policies for notifications
 CREATE POLICY "Users can view their own notifications"
 ON notifications FOR SELECT
