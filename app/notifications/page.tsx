@@ -29,6 +29,7 @@ type Notification = {
     post_preview?: string
     post_media?: string
     conversation_id?: string
+    like_count?: number
   }
 }
 

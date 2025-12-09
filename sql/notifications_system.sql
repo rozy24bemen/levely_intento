@@ -81,12 +81,11 @@ DECLARE
   xp_diff INTEGER;
   old_level INTEGER;
   new_level INTEGER;
-  recent_notification BOOLEAN;
 BEGIN
   -- Calculate XP difference
   xp_diff := NEW.xp - OLD.xp;
   
-  -- Check for level up first (this should always notify)
+  -- Check for level up (this should always notify)
   old_level := OLD.level;
   new_level := NEW.level;
   
@@ -99,28 +98,10 @@ BEGIN
       '¡Felicidades! Ahora eres nivel ' || new_level,
       jsonb_build_object('new_level', new_level, 'old_level', old_level, 'xp_gained', xp_diff)
     );
-  -- Only create standalone XP notification if XP increased and NO recent action notification exists
-  ELSIF xp_diff > 0 THEN
-    -- Check if there's a recent like or comment notification (within last 2 seconds)
-    SELECT EXISTS (
-      SELECT 1 FROM notifications
-      WHERE user_id = NEW.id
-      AND type IN ('like', 'comment')
-      AND created_at > NOW() - INTERVAL '2 seconds'
-    ) INTO recent_notification;
-    
-    -- Only create XP notification if no recent action notification
-    IF NOT recent_notification THEN
-      INSERT INTO notifications (user_id, type, title, message, metadata)
-      VALUES (
-        NEW.id,
-        'xp_gained',
-        '¡Ganaste experiencia!',
-        'Has ganado ' || xp_diff || ' puntos de experiencia',
-        jsonb_build_object('xp_amount', xp_diff)
-      );
-    END IF;
   END IF;
+  
+  -- No crear notificaciones standalone de XP
+  -- La XP siempre se mostrará con la acción que la generó (like, comment, etc.)
   
   RETURN NEW;
 END;
@@ -176,6 +157,10 @@ DECLARE
   post_content TEXT;
   post_media TEXT;
   notification_action_key TEXT;
+  existing_notification_id UUID;
+  existing_metadata JSONB;
+  like_count INTEGER;
+  other_likers JSONB;
 BEGIN
   -- Get post owner and content
   SELECT author_id, content, media_url INTO post_owner_id, post_content, post_media
@@ -192,33 +177,70 @@ BEGIN
   FROM profiles
   WHERE id = NEW.user_id;
   
-  -- Create unique action key: like_{post_id}_{liker_id}
-  notification_action_key := 'like_' || NEW.post_id || '_' || NEW.user_id;
+  -- Create unique action key per post (not per user): like_{post_id}
+  notification_action_key := 'like_' || NEW.post_id;
   
-  -- Try to insert, if it fails due to duplicate action_key, ignore it
-  BEGIN
-    INSERT INTO notifications (user_id, type, title, message, metadata, action_key)
-    VALUES (
-      post_owner_id,
-      'like',
-      'Nuevo me gusta',
-      liker_username || ' le gustó tu publicación (+5 XP)',
-      jsonb_build_object(
-        'from_user', liker_username,
-        'from_user_id', NEW.user_id,
-        'from_user_avatar', liker_avatar,
-        'post_id', NEW.post_id,
-        'post_preview', SUBSTRING(post_content, 1, 100),
-        'post_media', post_media,
-        'xp_gained', 5
+  -- Check if notification already exists for this post
+  SELECT id, metadata INTO existing_notification_id, existing_metadata
+  FROM notifications
+  WHERE action_key = notification_action_key;
+  
+  IF existing_notification_id IS NOT NULL THEN
+    -- Notification exists, update it with batching
+    -- Get current like count for this post
+    SELECT COUNT(*) INTO like_count
+    FROM likes
+    WHERE post_id = NEW.post_id;
+    
+    -- Update the notification with new count and latest liker
+    UPDATE notifications
+    SET 
+      message = CASE
+        WHEN like_count = 1 THEN liker_username || ' le gustó tu publicación (+5 XP)'
+        WHEN like_count = 2 THEN liker_username || ' y 1 usuario más les gustó tu publicación (+' || (like_count * 5) || ' XP)'
+        ELSE liker_username || ' y ' || (like_count - 1) || ' usuarios más les gustó tu publicación (+' || (like_count * 5) || ' XP)'
+      END,
+      metadata = jsonb_set(
+        jsonb_set(
+          jsonb_set(
+            existing_metadata,
+            '{from_user}', to_jsonb(liker_username)
+          ),
+          '{from_user_avatar}', to_jsonb(liker_avatar)
+        ),
+        '{like_count}', to_jsonb(like_count)
       ),
-      notification_action_key
-    );
-  EXCEPTION
-    WHEN unique_violation THEN
-      -- Notification already exists, do nothing
-      NULL;
-  END;
+      is_read = false,
+      created_at = NOW(),
+      updated_at = NOW()
+    WHERE id = existing_notification_id;
+  ELSE
+    -- Create new notification
+    BEGIN
+      INSERT INTO notifications (user_id, type, title, message, metadata, action_key)
+      VALUES (
+        post_owner_id,
+        'like',
+        'Nuevo me gusta',
+        liker_username || ' le gustó tu publicación (+5 XP)',
+        jsonb_build_object(
+          'from_user', liker_username,
+          'from_user_id', NEW.user_id,
+          'from_user_avatar', liker_avatar,
+          'post_id', NEW.post_id,
+          'post_preview', SUBSTRING(post_content, 1, 100),
+          'post_media', post_media,
+          'xp_gained', 5,
+          'like_count', 1
+        ),
+        notification_action_key
+      );
+    EXCEPTION
+      WHEN unique_violation THEN
+        -- Notification was just created by another process, ignore
+        NULL;
+    END;
+  END IF;
   
   RETURN NEW;
 END;
