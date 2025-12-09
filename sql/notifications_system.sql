@@ -8,10 +8,11 @@ CREATE TABLE IF NOT EXISTS notifications (
   is_read BOOLEAN DEFAULT false,
   metadata JSONB,
   created_at TIMESTAMPTZ DEFAULT now(),
-  updated_at TIMESTAMPTZ DEFAULT now(),
-  -- Unique identifier for the action (prevents duplicates)
-  action_key TEXT
+  updated_at TIMESTAMPTZ DEFAULT now()
 );
+
+-- Add action_key column if it doesn't exist
+ALTER TABLE notifications ADD COLUMN IF NOT EXISTS action_key TEXT;
 
 -- Create index for better query performance
 CREATE INDEX IF NOT EXISTS idx_notifications_user_id ON notifications(user_id);
