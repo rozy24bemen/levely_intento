@@ -153,7 +153,7 @@ DECLARE
   post_media TEXT;
 BEGIN
   -- Get post owner and content
-  SELECT user_id, content, media_url INTO post_owner_id, post_content, post_media
+  SELECT author_id, content, media_url INTO post_owner_id, post_content, post_media
   FROM posts
   WHERE id = NEW.post_id;
   
@@ -206,7 +206,7 @@ DECLARE
   post_media TEXT;
 BEGIN
   -- Get post owner and content
-  SELECT user_id, content, media_url INTO post_owner_id, post_content, post_media
+  SELECT author_id, content, media_url INTO post_owner_id, post_content, post_media
   FROM posts
   WHERE id = NEW.post_id;
   
