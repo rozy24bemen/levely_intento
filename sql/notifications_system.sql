@@ -131,10 +131,13 @@ CREATE OR REPLACE FUNCTION create_like_notification()
 RETURNS TRIGGER AS $$
 DECLARE
   liker_username TEXT;
+  liker_avatar TEXT;
   post_owner_id UUID;
+  post_content TEXT;
+  post_media TEXT;
 BEGIN
-  -- Get post owner
-  SELECT user_id INTO post_owner_id
+  -- Get post owner and content
+  SELECT user_id, content, media_url INTO post_owner_id, post_content, post_media
   FROM posts
   WHERE id = NEW.post_id;
   
@@ -143,8 +146,8 @@ BEGIN
     RETURN NEW;
   END IF;
   
-  -- Get liker username
-  SELECT username INTO liker_username
+  -- Get liker info
+  SELECT username, avatar_url INTO liker_username, liker_avatar
   FROM profiles
   WHERE id = NEW.user_id;
   
@@ -155,7 +158,14 @@ BEGIN
     'like',
     'Nuevo me gusta',
     liker_username || ' le gustó tu publicación',
-    jsonb_build_object('from_user', liker_username, 'post_id', NEW.post_id)
+    jsonb_build_object(
+      'from_user', liker_username,
+      'from_user_id', NEW.user_id,
+      'from_user_avatar', liker_avatar,
+      'post_id', NEW.post_id,
+      'post_preview', SUBSTRING(post_content, 1, 100),
+      'post_media', post_media
+    )
   );
   
   RETURN NEW;
@@ -168,3 +178,56 @@ CREATE TRIGGER like_notification_trigger
 AFTER INSERT ON likes
 FOR EACH ROW
 EXECUTE FUNCTION create_like_notification();
+
+-- Function to create comment notification
+CREATE OR REPLACE FUNCTION create_comment_notification()
+RETURNS TRIGGER AS $$
+DECLARE
+  commenter_username TEXT;
+  commenter_avatar TEXT;
+  post_owner_id UUID;
+  post_content TEXT;
+  post_media TEXT;
+BEGIN
+  -- Get post owner and content
+  SELECT user_id, content, media_url INTO post_owner_id, post_content, post_media
+  FROM posts
+  WHERE id = NEW.post_id;
+  
+  -- Don't notify if user comments on their own post
+  IF post_owner_id = NEW.user_id THEN
+    RETURN NEW;
+  END IF;
+  
+  -- Get commenter info
+  SELECT username, avatar_url INTO commenter_username, commenter_avatar
+  FROM profiles
+  WHERE id = NEW.user_id;
+  
+  -- Create notification
+  INSERT INTO notifications (user_id, type, title, message, metadata)
+  VALUES (
+    post_owner_id,
+    'comment',
+    'Nuevo comentario',
+    commenter_username || ' comentó en tu publicación',
+    jsonb_build_object(
+      'from_user', commenter_username,
+      'from_user_id', NEW.user_id,
+      'from_user_avatar', commenter_avatar,
+      'post_id', NEW.post_id,
+      'post_preview', SUBSTRING(post_content, 1, 100),
+      'post_media', post_media
+    )
+  );
+  
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Trigger for comment notifications
+DROP TRIGGER IF EXISTS comment_notification_trigger ON comments;
+CREATE TRIGGER comment_notification_trigger
+AFTER INSERT ON comments
+FOR EACH ROW
+EXECUTE FUNCTION create_comment_notification();
