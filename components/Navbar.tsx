@@ -178,13 +178,15 @@ export default function Navbar({ user, profile }: NavbarProps) {
         </div>
       </div>
 
-      {/* Create Post Modal */}
-      <CreatePostModal
-        isOpen={isCreatePostModalOpen}
-        onClose={() => setIsCreatePostModalOpen(false)}
-        userId={user.id}
-        userProfile={profile}
-      />
+      {/* Create Post Modal (render only when user is present) */}
+      {user && (
+        <CreatePostModal
+          isOpen={isCreatePostModalOpen}
+          onClose={() => setIsCreatePostModalOpen(false)}
+          userId={user.id}
+          userProfile={profile}
+        />
+      )}
     </nav>
   )
 }
