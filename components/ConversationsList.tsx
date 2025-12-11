@@ -39,8 +39,19 @@ type Conversation = {
   unread_count?: number
 }
 
+// Extended conversation type to support group conversations in the same list
+type GroupConversation = {
+  id: string
+  is_group?: true
+  group_id?: string
+  name?: string | null
+  members?: UserProfile[]
+  last_message?: Message | any
+  unread_count?: number
+}
+
 export default function ConversationsList({ currentUserId, selectedConversationId }: ConversationsListProps) {
-  const [conversations, setConversations] = useState<Conversation[]>([])
+  const [conversations, setConversations] = useState<Array<Conversation | GroupConversation>>([])
   const [loading, setLoading] = useState(true)
   const router = useRouter()
   const supabase = createClient()
