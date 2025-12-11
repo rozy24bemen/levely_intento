@@ -224,8 +224,8 @@ export default async function Home({ searchParams }: PageProps) {
               </div>
             )}
             
-            {postsData?.map((post) => (
-              <PostCard key={post.id} post={post} currentUserId={user?.id} />
+            {postsData && postsData.map((post) => (
+              <PostCard key={post.id} post={post} currentUserId={undefined} />
             ))}
           </div>
         )}
