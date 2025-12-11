@@ -39,9 +39,12 @@ export type Comment = {
   post_id: string
   author_id: string
   content: string
+  parent_id: string | null
+  replies_count: number
   created_at: string
   updated_at: string
   profiles: Profile | null
+  replies?: Comment[]
 }
 
 export type Short = {

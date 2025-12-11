@@ -31,6 +31,8 @@ export default function CommentsList({ postId, currentUserId, initialCount = 0 }
           post_id,
           author_id,
           content,
+          parent_id,
+          replies_count,
           created_at,
           updated_at,
           profiles!comments_author_id_fkey (
@@ -41,6 +43,7 @@ export default function CommentsList({ postId, currentUserId, initialCount = 0 }
           )
         `)
         .eq('post_id', postId)
+        .is('parent_id', null)
         .order('created_at', { ascending: true })
 
       if (error) throw error

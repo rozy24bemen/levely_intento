@@ -6,6 +6,7 @@ import type { ShortComment } from '@/lib/types'
 import CreateShortCommentForm from './CreateShortCommentForm'
 import { MessageSquare } from 'lucide-react'
 import Image from 'next/image'
+import Link from 'next/link'
 
 interface ShortCommentsListProps {
   shortId: string
@@ -99,9 +100,12 @@ export default function ShortCommentsList({ shortId, currentUserId, initialCount
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1">
-                  <span className="font-semibold text-sm text-gray-900">
+                  <Link
+                    href={`/profile/${comment.author_id}`}
+                    className="font-semibold text-sm text-gray-900 hover:text-purple-600 hover:underline transition-colors"
+                  >
                     {comment.profiles?.username || 'Usuario'}
-                  </span>
+                  </Link>
                   <span className="text-xs text-purple-600 font-medium">
                     Nivel {comment.profiles?.level || 1}
                   </span>
