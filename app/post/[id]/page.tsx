@@ -22,11 +22,11 @@ export default async function PostPage({ params }: PageProps) {
   }
 
   // Get post with author info
-  const { data: post, error } = await supabase
+  const { data: postData, error } = await supabase
     .from('posts')
     .select(`
       *,
-      user:profiles(
+      profiles!posts_author_id_fkey (
         id,
         username,
         avatar_url,
@@ -36,7 +36,7 @@ export default async function PostPage({ params }: PageProps) {
     .eq('id', id)
     .single()
 
-  if (error || !post) {
+  if (error || !postData) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -45,6 +45,12 @@ export default async function PostPage({ params }: PageProps) {
         </div>
       </div>
     )
+  }
+
+  // Transform the profiles array to single object
+  const post = {
+    ...postData,
+    profiles: Array.isArray(postData.profiles) ? postData.profiles[0] : postData.profiles
   }
 
   return (
