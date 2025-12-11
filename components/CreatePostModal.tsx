@@ -116,7 +116,7 @@ export default function CreatePostModal({ isOpen, onClose, userId, userProfile }
     <>
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-black bg-opacity-40 z-40 transition-opacity"
+        className="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm z-40 transition-opacity"
         onClick={onClose}
       />
 
