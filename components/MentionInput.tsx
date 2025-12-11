@@ -34,8 +34,19 @@ export default function MentionInput({
   const [selectedIndex, setSelectedIndex] = useState(0)
   const [mentionQuery, setMentionQuery] = useState('')
   const [cursorPosition, setCursorPosition] = useState(0)
+  const [displayValue, setDisplayValue] = useState('')
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const suggestionsRef = useRef<HTMLDivElement>(null)
+  
+  // Convert mention format to display format
+  const getDisplayValue = (text: string): string => {
+    return text.replace(/@\[([^\]]+)\]\([^)]+\)/g, '@$1')
+  }
+  
+  // Update display value when internal value changes
+  useEffect(() => {
+    setDisplayValue(getDisplayValue(value))
+  }, [value])
 
   // Extract mentioned user IDs from text
   const extractMentions = (text: string): string[] => {
@@ -73,16 +84,41 @@ export default function MentionInput({
     return () => clearTimeout(debounce)
   }, [mentionQuery])
 
+  // Convert display format back to internal format
+  const getInternalValue = (displayText: string, originalValue: string): string => {
+    // Extract existing mentions from original value
+    const mentionMap = new Map<string, string>()
+    const mentionRegex = /@\[([^\]]+)\]\(([^)]+)\)/g
+    let match
+    
+    while ((match = mentionRegex.exec(originalValue)) !== null) {
+      const displayMention = `@${match[1]}`
+      mentionMap.set(displayMention, match[0]) // Store full format
+    }
+    
+    // Replace display mentions with internal format
+    let result = displayText
+    mentionMap.forEach((fullFormat, displayFormat) => {
+      result = result.split(displayFormat).join(fullFormat)
+    })
+    
+    return result
+  }
+
   // Handle textarea changes
   const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const newValue = e.target.value
+    const newDisplayValue = e.target.value
     const cursorPos = e.target.selectionStart
 
     setCursorPosition(cursorPos)
-    onChange(newValue, extractMentions(newValue))
+    setDisplayValue(newDisplayValue)
+    
+    // Convert back to internal format preserving existing mentions
+    const newInternalValue = getInternalValue(newDisplayValue, value)
+    onChange(newInternalValue, extractMentions(newInternalValue))
 
     // Check if user is typing a mention
-    const textBeforeCursor = newValue.slice(0, cursorPos)
+    const textBeforeCursor = newDisplayValue.slice(0, cursorPos)
     const lastAtSymbol = textBeforeCursor.lastIndexOf('@')
 
     if (lastAtSymbol !== -1) {
@@ -106,21 +142,32 @@ export default function MentionInput({
   const insertMention = (user: User) => {
     if (!textareaRef.current) return
 
-    const textBeforeCursor = value.slice(0, cursorPosition)
-    const textAfterCursor = value.slice(cursorPosition)
+    const textBeforeCursor = displayValue.slice(0, cursorPosition)
+    const textAfterCursor = displayValue.slice(cursorPosition)
     const lastAtSymbol = textBeforeCursor.lastIndexOf('@')
 
     if (lastAtSymbol === -1) return
 
     // Build mention format: @[username](userId)
-    const mention = `@[${user.username}](${user.id})`
-    const newValue = 
-      value.slice(0, lastAtSymbol) + 
-      mention + 
+    const mentionInternal = `@[${user.username}](${user.id})`
+    const mentionDisplay = `@${user.username}`
+    
+    // Update internal value
+    const newInternalValue = 
+      getInternalValue(displayValue.slice(0, lastAtSymbol), value) + 
+      mentionInternal + 
+      ' ' + 
+      getInternalValue(textAfterCursor, value)
+    
+    // Update display value
+    const newDisplayValue = 
+      displayValue.slice(0, lastAtSymbol) + 
+      mentionDisplay + 
       ' ' + 
       textAfterCursor
 
-    onChange(newValue, extractMentions(newValue))
+    setDisplayValue(newDisplayValue)
+    onChange(newInternalValue, extractMentions(newInternalValue))
     setShowSuggestions(false)
     setMentionQuery('')
     setSuggestions([])
@@ -129,7 +176,7 @@ export default function MentionInput({
     setTimeout(() => {
       if (textareaRef.current) {
         textareaRef.current.focus()
-        const newCursorPos = lastAtSymbol + mention.length + 1
+        const newCursorPos = lastAtSymbol + mentionDisplay.length + 1
         textareaRef.current.setSelectionRange(newCursorPos, newCursorPos)
       }
     }, 0)
@@ -154,16 +201,11 @@ export default function MentionInput({
     }
   }
 
-  // Convert mention format to display format
-  const getDisplayValue = (text: string): string => {
-    return text.replace(/@\[([^\]]+)\]\([^)]+\)/g, '@$1')
-  }
-
   return (
     <div className={`relative ${className}`}>
       <textarea
         ref={textareaRef}
-        value={getDisplayValue(value)}
+        value={displayValue}
         onChange={handleChange}
         onKeyDown={handleKeyDown}
         placeholder={placeholder}
