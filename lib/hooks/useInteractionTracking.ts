@@ -18,8 +18,8 @@ export function useInteractionTracking({
 }: UseInteractionTrackingProps) {
   const supabase = createClient()
   const hasTrackedView = useRef(false)
-  const viewTimer = useRef<ReturnType<typeof setTimeout>>()
-  const startTime = useRef<number>()
+  const viewTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+  const startTime = useRef<number | undefined>(undefined)
 
   // Track view after 2 seconds of viewing
   useEffect(() => {
@@ -71,8 +71,10 @@ export function useInteractionTracking({
               watch_time_seconds: watchTime,
               timestamp: new Date().toISOString()
             }
-          }).catch((error: any) => {
-            console.error('Error tracking watch time:', error)
+          }).then(({ error }) => {
+            if (error) {
+              console.error('Error tracking watch time:', error)
+            }
           })
         }
       }
