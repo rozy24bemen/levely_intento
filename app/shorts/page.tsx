@@ -50,8 +50,14 @@ export default async function ShortsPage() {
       })) || []
 
       // Sort by recommendation score
-      const scoreMap = new Map(recommendedShortIds.map((item: any) => [item.short_id, item.final_score]))
-      shortsData = shorts.sort((a, b) => (scoreMap.get(b.id) || 0) - (scoreMap.get(a.id) || 0))
+      const scoreMap = new Map<string, number>(
+        recommendedShortIds.map((item: any) => [item.short_id, item.final_score as number])
+      )
+      shortsData = shorts.sort((a, b) => {
+        const scoreB = scoreMap.get(b.id) ?? 0
+        const scoreA = scoreMap.get(a.id) ?? 0
+        return scoreB - scoreA
+      })
     }
 
     // Fallback to recent shorts if no recommendations

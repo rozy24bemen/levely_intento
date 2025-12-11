@@ -57,8 +57,14 @@ export default async function Home({ searchParams }: PageProps) {
       })) || []
 
       // Sort by recommendation score
-      const scoreMap = new Map(recommendedPostIds.map((item: any) => [item.post_id, item.final_score]))
-      forYouPosts.sort((a, b) => (scoreMap.get(b.id) || 0) - (scoreMap.get(a.id) || 0))
+      const scoreMap = new Map<string, number>(
+        recommendedPostIds.map((item: any) => [item.post_id, item.final_score as number])
+      )
+      forYouPosts.sort((a, b) => {
+        const scoreB = scoreMap.get(b.id) ?? 0
+        const scoreA = scoreMap.get(a.id) ?? 0
+        return scoreB - scoreA
+      })
     }
 
     // Get "Following" feed
