@@ -607,19 +607,34 @@ export default function PetsPage() {
             <p className="text-gray-600 mb-6">Alimenta a tu mascota para que gane experiencia más rápido</p>
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {foodItems.map((food) => {
+              {foodItems.map((food, index) => {
                 const canAfford = coins >= food.price;
                 
                 return (
                   <motion.div
                     key={food.id}
-                    whileHover={canAfford ? { scale: 1.05 } : {}}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.1 }}
+                    whileHover={canAfford ? { scale: 1.05, y: -5 } : {}}
                     className={`border-2 rounded-xl p-4 transition-all ${FOOD_RARITY_STYLES[food.rarity]} ${
                       !canAfford ? 'opacity-50' : ''
                     }`}
                   >
                     <div className="text-center">
-                      <div className="text-5xl mb-3">{food.emoji}</div>
+                      <motion.div 
+                        className="text-5xl mb-3"
+                        animate={{ 
+                          y: [0, -10, 0],
+                        }}
+                        transition={{ 
+                          duration: 2,
+                          repeat: Infinity,
+                          ease: "easeInOut"
+                        }}
+                      >
+                        {food.emoji}
+                      </motion.div>
                       <h4 className="font-bold text-gray-900 mb-1">{food.name}</h4>
                       <p className="text-xs text-gray-600 mb-3">{food.description}</p>
                       
@@ -663,16 +678,43 @@ export default function PetsPage() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 backdrop-blur-sm"
+            className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 backdrop-blur-sm"
           >
-            <motion.div
-              initial={{ scale: 0, rotate: 0 }}
-              animate={{ scale: 1, rotate: 360 }}
-              exit={{ scale: 0, rotate: -360 }}
-              transition={{ duration: 1.5 }}
-              className="text-9xl"
+            <motion.div 
+              initial={{ scale: 0, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0, opacity: 0 }}
+              transition={{ type: "spring", duration: 0.5 }}
+              className="bg-white rounded-2xl p-8 shadow-2xl"
             >
-              {selectedFood.emoji}
+              <motion.div
+                animate={{ 
+                  y: [0, -20, 0],
+                  rotate: [-5, 5, -5]
+                }}
+                transition={{ 
+                  duration: 0.6,
+                  repeat: Infinity,
+                  ease: "easeInOut"
+                }}
+                className="text-8xl mb-4 text-center"
+              >
+                {selectedFood.emoji}
+              </motion.div>
+              
+              <div className="text-center">
+                <h3 className="text-2xl font-bold text-gray-900 mb-2">¡Compra realizada!</h3>
+                <p className="text-gray-600 mb-4">{selectedFood.name}</p>
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ delay: 0.3 }}
+                  className="inline-flex items-center gap-2 bg-yellow-100 text-yellow-700 px-4 py-2 rounded-full font-bold"
+                >
+                  <Coins className="w-5 h-5" />
+                  -{selectedFood.price}
+                </motion.div>
+              </div>
             </motion.div>
           </motion.div>
         )}
