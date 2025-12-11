@@ -54,8 +54,11 @@ DROP POLICY IF EXISTS "Users can view their groups" ON public.groups;
 CREATE POLICY "Users can view their groups"
   ON public.groups FOR SELECT
   USING (
-    auth.uid() = owner_id OR 
-    auth.uid() IN (SELECT user_id FROM group_members WHERE group_id = id)
+    EXISTS (
+      SELECT 1 FROM public.group_members 
+      WHERE group_members.group_id = groups.id 
+      AND group_members.user_id = auth.uid()
+    )
   );
 
 DROP POLICY IF EXISTS "Authenticated users can create groups" ON public.groups;
@@ -79,7 +82,13 @@ ALTER TABLE public.group_members ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Users can view group members" ON public.group_members;
 CREATE POLICY "Users can view group members"
   ON public.group_members FOR SELECT
-  USING (true); -- Allow anyone to view group members if they can access the group
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.group_members gm
+      WHERE gm.group_id = group_members.group_id 
+      AND gm.user_id = auth.uid()
+    )
+  );
 
 DROP POLICY IF EXISTS "Group owners can add members" ON public.group_members;
 CREATE POLICY "Group owners can add members"
