@@ -41,33 +41,33 @@ export default function PetsPage() {
   const clicksNeeded = 5;
 
   const handleBoxClick = () => {
-    if (!openingBox) {
-      setOpeningBox(true);
-      setClickCount(0);
+    // Ignorar clics si la caja ya se está abriendo o si ya llegamos a los 5 clics
+    if (!openingBox || clickCount >= clicksNeeded) {
+      return;
     }
     
-    if (clickCount < clicksNeeded - 1) {
-      setClickCount(clickCount + 1);
-      setShake(shake + 1);
-      
-      // Generar partículas coloridas en cada clic
-      const colors = ['#ef4444', '#f59e0b', '#eab308', '#22c55e', '#06b6d4', '#8b5cf6', '#ec4899'];
-      const newParticles = Array.from({ length: 20 }, (_, i) => ({
-        id: Date.now() + i,
-        x: Math.random() * 400 - 200,
-        y: Math.random() * 400 - 200,
-        color: colors[Math.floor(Math.random() * colors.length)],
-        size: Math.random() * 8 + 4,
-      }));
-      setParticles([...particles, ...newParticles]);
-      
-      // Limpiar partículas antiguas
-      setTimeout(() => {
-        setParticles([]);
-      }, 1000);
-    } else {
-      // Último clic - abrir la caja con explosión de partículas
-      setClickCount(clickCount + 1);
+    const newClickCount = clickCount + 1;
+    setClickCount(newClickCount);
+    setShake(shake + 1);
+    
+    // Generar partículas coloridas en cada clic
+    const colors = ['#ef4444', '#f59e0b', '#eab308', '#22c55e', '#06b6d4', '#8b5cf6', '#ec4899'];
+    const newParticles = Array.from({ length: 20 }, (_, i) => ({
+      id: Date.now() + i,
+      x: Math.random() * 400 - 200,
+      y: Math.random() * 400 - 200,
+      color: colors[Math.floor(Math.random() * colors.length)],
+      size: Math.random() * 8 + 4,
+    }));
+    setParticles([...particles, ...newParticles]);
+    
+    // Limpiar partículas antiguas
+    setTimeout(() => {
+      setParticles([]);
+    }, 1000);
+    
+    // Si alcanzamos exactamente 5 clics, abrir la caja
+    if (newClickCount === clicksNeeded) {
       openBox();
     }
   };
@@ -171,7 +171,12 @@ export default function PetsPage() {
           </div>
           
           <button
-            onClick={() => !openingBox && handleBoxClick()}
+            onClick={() => {
+              if (!openingBox) {
+                setOpeningBox(true);
+                setClickCount(0);
+              }
+            }}
             disabled={openingBox}
             className="bg-white text-indigo-600 px-8 py-4 rounded-xl hover:bg-indigo-50 flex items-center gap-2 transition-all hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
           >
