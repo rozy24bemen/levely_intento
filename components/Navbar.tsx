@@ -5,8 +5,10 @@ import { useRouter, usePathname } from 'next/navigation'
 import { LogOut, Home, User, Zap, Search, MessageCircle, PlusCircle } from 'lucide-react'
 import Link from 'next/link'
 import Image from 'next/image'
+import { useState } from 'react'
 import UnreadMessagesCount from './UnreadMessagesCount'
 import NotificationsDropdown from './NotificationsDropdown'
+import CreatePostModal from './CreatePostModal'
 
 type NavbarProps = {
   user: {
@@ -24,6 +26,7 @@ export default function Navbar({ user, profile }: NavbarProps) {
   const router = useRouter()
   const pathname = usePathname()
   const supabase = createClient()
+  const [isCreatePostModalOpen, setIsCreatePostModalOpen] = useState(false)
 
   // Hide navbar on Shorts page
   if (pathname === '/shorts') {
@@ -75,14 +78,14 @@ export default function Navbar({ user, profile }: NavbarProps) {
                 </Link>
 
                 {/* Create Post Button */}
-                <Link
-                  href="/create"
+                <button
+                  onClick={() => setIsCreatePostModalOpen(true)}
                   className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium"
                   title="Crear Publicación"
                 >
                   <PlusCircle className="w-5 h-5" />
                   <span className="hidden sm:inline">Publicar</span>
-                </Link>
+                </button>
 
                 {/* Notifications */}
                 <NotificationsDropdown userId={user.id} />
@@ -174,6 +177,14 @@ export default function Navbar({ user, profile }: NavbarProps) {
           </div>
         </div>
       </div>
+
+      {/* Create Post Modal */}
+      <CreatePostModal
+        isOpen={isCreatePostModalOpen}
+        onClose={() => setIsCreatePostModalOpen(false)}
+        userId={user.id}
+        userProfile={profile}
+      />
     </nav>
   )
 }
