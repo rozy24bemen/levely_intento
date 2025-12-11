@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { Trash2, MessageCircle, Send, Heart } from 'lucide-react'
 import { createClient } from '@/lib/supabase/browserClient'
+import MentionText from './MentionText'
 import type { Comment } from '@/lib/types'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -223,7 +224,7 @@ export default function CommentCard({ comment, currentUserId, onDelete, onReply,
         </div>
 
         <p className="text-gray-700 text-sm whitespace-pre-wrap break-words">
-          {comment.content}
+          <MentionText text={comment.content} />
         </p>
 
         {/* Action buttons */}

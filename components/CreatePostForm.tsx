@@ -7,11 +7,13 @@ import { Send, Image as ImageIcon, Video as VideoIcon } from 'lucide-react'
 import { notifyXPGain } from './XPNotifications'
 import ImageUploader from './ImageUploader'
 import VideoUploader from './VideoUploader'
+import MentionInput from './MentionInput'
 
 type MediaMode = 'none' | 'image' | 'video'
 
 export default function CreatePostForm({ userId }: { userId: string }) {
   const [content, setContent] = useState('')
+  const [mentions, setMentions] = useState<string[]>([])
   const [mediaUrl, setMediaUrl] = useState<string | null>(null)
   const [mediaMode, setMediaMode] = useState<MediaMode>('none')
   const [loading, setLoading] = useState(false)
@@ -27,14 +29,34 @@ export default function CreatePostForm({ userId }: { userId: string }) {
     setError(null)
 
     try {
-      const { error } = await supabase.from('posts').insert({
-        author_id: userId,
-        content: content.trim(),
-        media_url: mediaUrl,
-        media_type: mediaMode === 'none' ? null : mediaMode,
-      })
+      // Create post
+      const { data: post, error: postError } = await supabase
+        .from('posts')
+        .insert({
+          author_id: userId,
+          content: content.trim(),
+          media_url: mediaUrl,
+          media_type: mediaMode === 'none' ? null : mediaMode,
+        })
+        .select('id')
+        .single()
 
-      if (error) throw error
+      if (postError) throw postError
+
+      // Save mentions if any
+      if (mentions.length > 0 && post) {
+        const mentionRecords = mentions.map(mentionedUserId => ({
+          mentioner_id: userId,
+          mentioned_user_id: mentionedUserId,
+          post_id: post.id,
+        }))
+
+        const { error: mentionsError } = await supabase
+          .from('mentions')
+          .insert(mentionRecords)
+
+        if (mentionsError) console.error('Error saving mentions:', mentionsError)
+      }
 
       // Notificar ganancia de XP por crear post (20 XP video, 15 XP imagen, 10 XP texto)
       const xpAmount = mediaMode === 'video' ? 20 : mediaMode === 'image' ? 15 : 10
@@ -45,6 +67,7 @@ export default function CreatePostForm({ userId }: { userId: string }) {
       notifyXPGain(xpAmount, message)
 
       setContent('')
+      setMentions([])
       setMediaUrl(null)
       setMediaMode('none')
       router.refresh()
@@ -63,13 +86,16 @@ export default function CreatePostForm({ userId }: { userId: string }) {
   return (
     <div className="bg-white rounded-lg shadow-sm p-6">
       <form onSubmit={handleSubmit} className="space-y-4">
-        <textarea
+        <MentionInput
           value={content}
-          onChange={(e) => setContent(e.target.value)}
-          placeholder="¿Qué estás pensando?"
+          onChange={(newContent, newMentions) => {
+            setContent(newContent)
+            setMentions(newMentions)
+          }}
+          placeholder="¿Qué estás pensando? Usa @ para mencionar usuarios"
           maxLength={5000}
-          rows={3}
-          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+          disabled={loading}
+          textareaClassName="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none min-h-[80px]"
         />
 
         {/* Media type selector */}

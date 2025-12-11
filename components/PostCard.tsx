@@ -6,6 +6,7 @@ import { Heart, MessageCircle, Play } from 'lucide-react'
 import CommentsList from './CommentsList'
 import ImageModal from './ImageModal'
 import VideoModal from './VideoModal'
+import MentionText from './MentionText'
 import type { Post } from '@/lib/types'
 import Link from 'next/link'
 import Image from 'next/image'
@@ -116,7 +117,9 @@ export default function PostCard({ post, currentUserId }: { post: Post; currentU
         </div>
       </div>
 
-      <p className="text-gray-800 mb-4 whitespace-pre-wrap">{post.content}</p>
+      <p className="text-gray-800 mb-4 whitespace-pre-wrap">
+        <MentionText text={post.content} />
+      </p>
 
       {/* Image display */}
       {post.media_url && post.media_type === 'image' && (

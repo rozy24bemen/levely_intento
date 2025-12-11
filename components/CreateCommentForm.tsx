@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { Send } from 'lucide-react'
 import { createClient } from '@/lib/supabase/browserClient'
 import { notifyXPGain } from './XPNotifications'
+import MentionInput from './MentionInput'
 
 interface CreateCommentFormProps {
   postId: string
@@ -13,6 +14,7 @@ interface CreateCommentFormProps {
 
 export default function CreateCommentForm({ postId, userId, onCommentCreated }: CreateCommentFormProps) {
   const [content, setContent] = useState('')
+  const [mentions, setMentions] = useState<string[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const supabase = createClient()
@@ -25,18 +27,39 @@ export default function CreateCommentForm({ postId, userId, onCommentCreated }: 
     setError(null)
 
     try {
-      const { error } = await supabase.from('comments').insert({
-        post_id: postId,
-        author_id: userId,
-        content: content.trim(),
-      })
+      // Create comment
+      const { data: comment, error: commentError } = await supabase
+        .from('comments')
+        .insert({
+          post_id: postId,
+          author_id: userId,
+          content: content.trim(),
+        })
+        .select('id')
+        .single()
 
-      if (error) throw error
+      if (commentError) throw commentError
+
+      // Save mentions if any
+      if (mentions.length > 0 && comment) {
+        const mentionRecords = mentions.map(mentionedUserId => ({
+          mentioner_id: userId,
+          mentioned_user_id: mentionedUserId,
+          comment_id: comment.id,
+        }))
+
+        const { error: mentionsError } = await supabase
+          .from('mentions')
+          .insert(mentionRecords)
+
+        if (mentionsError) console.error('Error saving mentions:', mentionsError)
+      }
 
       // Notificar ganancia de XP por comentar
       notifyXPGain(3, 'Comentaste en un post')
 
       setContent('')
+      setMentions([])
       onCommentCreated?.()
     } catch (err: any) {
       setError(err.message)
@@ -48,13 +71,17 @@ export default function CreateCommentForm({ postId, userId, onCommentCreated }: 
   return (
     <form onSubmit={handleSubmit} className="border-t border-gray-200 pt-4">
       <div className="flex gap-3">
-        <textarea
+        <MentionInput
           value={content}
-          onChange={(e) => setContent(e.target.value)}
-          placeholder="Escribe un comentario..."
+          onChange={(newContent, newMentions) => {
+            setContent(newContent)
+            setMentions(newMentions)
+          }}
+          placeholder="Escribe un comentario... Usa @ para mencionar"
           maxLength={1000}
-          rows={2}
-          className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none text-sm"
+          disabled={loading}
+          className="flex-1"
+          textareaClassName="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none text-sm min-h-[60px]"
         />
         <button
           type="submit"

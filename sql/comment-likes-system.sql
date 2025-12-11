@@ -26,6 +26,7 @@ ALTER TABLE public.comment_likes ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Users can view all comment likes" ON public.comment_likes;
 DROP POLICY IF EXISTS "Users can create comment likes" ON public.comment_likes;
 DROP POLICY IF EXISTS "Users can delete their own comment likes" ON public.comment_likes;
+DROP POLICY IF EXISTS "Service role can manage comment likes" ON public.comment_likes;
 
 -- RLS Policies
 CREATE POLICY "Users can view all comment likes"
@@ -42,6 +43,13 @@ CREATE POLICY "Users can delete their own comment likes"
 ON public.comment_likes FOR DELETE
 TO authenticated
 USING (auth.uid() = user_id);
+
+-- Policy for service role (allows triggers and functions to work)
+CREATE POLICY "Service role can manage comment likes"
+ON public.comment_likes FOR ALL
+TO service_role
+USING (true)
+WITH CHECK (true);
 
 -- ============================================
 -- ADD LIKES_COUNT TO COMMENTS TABLE
@@ -65,7 +73,7 @@ BEGIN
   
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- Function to decrement comment like count
 CREATE OR REPLACE FUNCTION decrement_comment_like_count()
@@ -77,7 +85,7 @@ BEGIN
   
   RETURN OLD;
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- ============================================
 -- TRIGGERS FOR LIKE COUNTERS
@@ -143,7 +151,7 @@ BEGIN
   
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- Function to delete notification when comment like is removed
 CREATE OR REPLACE FUNCTION delete_comment_like_notification()
@@ -154,7 +162,7 @@ BEGIN
   
   RETURN OLD;
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- ============================================
 -- TRIGGERS FOR NOTIFICATIONS
