@@ -70,7 +70,8 @@ RETURNS TRIGGER AS $$
 DECLARE
   mentioner_username TEXT;
   content_type TEXT;
-  content_id UUID;
+  target_post_id UUID;
+  notification_message TEXT;
 BEGIN
   -- Only create notification if mentioning someone else
   IF NEW.mentioner_id != NEW.mentioned_user_id THEN
@@ -79,13 +80,18 @@ BEGIN
     FROM public.profiles
     WHERE id = NEW.mentioner_id;
     
-    -- Determine content type and ID
+    -- Determine content type and get the post_id
     IF NEW.post_id IS NOT NULL THEN
       content_type := 'post';
-      content_id := NEW.post_id;
+      target_post_id := NEW.post_id;
+      notification_message := mentioner_username || ' te mencionó en un post';
     ELSE
-      content_type := 'comment';
-      content_id := NEW.comment_id;
+      content_type := 'comentario';
+      -- Get the post_id from the comment
+      SELECT post_id INTO target_post_id
+      FROM public.comments
+      WHERE id = NEW.comment_id;
+      notification_message := mentioner_username || ' te mencionó en un comentario';
     END IF;
     
     -- Create notification with unique action_key
@@ -100,13 +106,12 @@ BEGIN
       NEW.mentioned_user_id,
       'message',
       'Te mencionaron',
-      mentioner_username || ' te mencionó en un ' || content_type,
+      notification_message,
       jsonb_build_object(
         'mentioner_id', NEW.mentioner_id,
         'mentioner_username', mentioner_username,
         'content_type', content_type,
-        'content_id', content_id,
-        'post_id', NEW.post_id,
+        'post_id', target_post_id,
         'comment_id', NEW.comment_id
       ),
       'mention_' || NEW.id

@@ -30,6 +30,10 @@ type Notification = {
     post_media?: string
     conversation_id?: string
     like_count?: number
+    mentioner_id?: string
+    mentioner_username?: string
+    content_type?: string
+    comment_id?: string
   }
 }
 
@@ -161,7 +165,12 @@ export default function NotificationsPage() {
         router.push(`/post/${notification.metadata.post_id}`)
       }
     } else if (notification.type === 'message') {
-      router.push('/messages')
+      // Check if it's a mention notification
+      if (notification.metadata?.post_id) {
+        router.push(`/post/${notification.metadata.post_id}`)
+      } else {
+        router.push('/messages')
+      }
     }
   }
 
@@ -306,6 +315,38 @@ export default function NotificationsPage() {
                               </div>
                             </button>
                           )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Mention Notification */}
+                    {notification.type === 'message' && notification.metadata?.mentioner_username && notification.metadata?.post_id && (
+                      <div className="mt-4">
+                        <div className="flex items-center gap-3">
+                          {/* Mentioner Info */}
+                          {notification.metadata.mentioner_id && (
+                            <Link
+                              href={`/profile/${notification.metadata.mentioner_id}`}
+                              className="flex items-center gap-2 hover:bg-gray-100 rounded-lg p-2 transition"
+                              onClick={() => markAsRead(notification.id)}
+                            >
+                              <span className="font-medium text-gray-900 hover:text-blue-600">
+                                @{notification.metadata.mentioner_username}
+                              </span>
+                            </Link>
+                          )}
+
+                          {/* Link to post/comment */}
+                          <button
+                            onClick={() => handleNotificationClick(notification)}
+                            className="flex-1 px-4 py-2 bg-blue-50 hover:bg-blue-100 rounded-lg border border-blue-200 transition text-left"
+                          >
+                            <span className="text-sm text-blue-700 font-medium">
+                              {notification.metadata.content_type === 'comentario' 
+                                ? 'Ver comentario →' 
+                                : 'Ver publicación →'}
+                            </span>
+                          </button>
                         </div>
                       </div>
                     )}
