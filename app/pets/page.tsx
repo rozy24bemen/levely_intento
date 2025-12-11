@@ -5,14 +5,19 @@ import { usePets, Pet } from '@/contexts/PetContext';
 import { Gift, Star, Zap, TrendingUp, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
+// Ordenadas por rareza (común, raro, épico, legendario)
 const AVAILABLE_PETS: Omit<Pet, 'id' | 'level' | 'experience' | 'maxExperience'>[] = [
+  // Comunes
   { name: 'Gato', type: 'Felino', rarity: 'common', emoji: '🐱', color: '#f59e0b' },
   { name: 'Perro', type: 'Canino', rarity: 'common', emoji: '🐶', color: '#8b5cf6' },
   { name: 'Conejo', type: 'Roedor', rarity: 'common', emoji: '🐰', color: '#ec4899' },
+  // Raras
   { name: 'Panda', type: 'Oso', rarity: 'rare', emoji: '🐼', color: '#06b6d4' },
   { name: 'León', type: 'Felino', rarity: 'rare', emoji: '🦁', color: '#f97316' },
+  // Épicas
   { name: 'Tigre', type: 'Felino', rarity: 'epic', emoji: '🐯', color: '#eab308' },
   { name: 'Unicornio', type: 'Mítico', rarity: 'epic', emoji: '🦄', color: '#a855f7' },
+  // Legendarias
   { name: 'Dragón', type: 'Legendario', rarity: 'legendary', emoji: '🐉', color: '#ef4444' },
   { name: 'Fénix', type: 'Legendario', rarity: 'legendary', emoji: '🔥', color: '#dc2626' },
 ];
@@ -39,6 +44,16 @@ export default function PetsPage() {
   const [particles, setParticles] = useState<Array<{ id: number; x: number; y: number; color: string; size: number }>>([]);
   const [shake, setShake] = useState(0);
   const clicksNeeded = 5;
+
+  // Crear lista de todas las mascotas con estado bloqueado/desbloqueado
+  const allPetsWithStatus = AVAILABLE_PETS.map(availablePet => {
+    const ownedPet = pets.find(p => p.name === availablePet.name);
+    return {
+      ...availablePet,
+      isUnlocked: !!ownedPet,
+      ownedData: ownedPet,
+    };
+  });
 
   const handleBoxClick = () => {
     // Ignorar clics si la caja ya se está abriendo o si ya llegamos a los 5 clics
@@ -454,89 +469,105 @@ export default function PetsPage() {
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-2">
                   <div 
-                    className="bg-indigo-600 h-2 rounded-full transition-all"
-                    style={{ width: `${(activePet.experience / activePet.maxExperience) * 100}%` }}
-                  ></div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Pets Grid */}
       <div>
         <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
           <TrendingUp className="w-5 h-5 text-gray-600" />
-          Todas mis Mascotas ({pets.length})
+          Colección de Mascotas ({pets.length}/{AVAILABLE_PETS.length})
         </h3>
-        {pets.length === 0 ? (
-          <div className="text-center py-12 bg-gray-50 rounded-xl">
-            <div className="text-6xl mb-4">🎁</div>
-            <p className="text-gray-600">¡Abre tu primera caja para obtener una mascota!</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {pets.map((pet) => (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {allPetsWithStatus.map((petInfo, index) => {
+            const pet = petInfo.ownedData;
+            const isLocked = !petInfo.isUnlocked;
+            
+            return (
               <motion.div
-                key={pet.id}
-                whileHover={{ scale: 1.02 }}
-                className={`bg-white rounded-xl p-6 border-2 cursor-pointer transition-all ${
-                  activePet?.id === pet.id ? 'border-indigo-500 shadow-lg' : 'border-gray-200 hover:border-indigo-300'
+                key={petInfo.name}
+                whileHover={!isLocked ? { scale: 1.02 } : {}}
+                className={`bg-white rounded-xl p-6 border-2 transition-all ${
+                  isLocked 
+                    ? 'border-gray-300 opacity-60' 
+                    : pet && activePet?.id === pet.id 
+                      ? 'border-indigo-500 shadow-lg cursor-pointer' 
+                      : 'border-gray-200 hover:border-indigo-300 cursor-pointer'
                 }`}
               >
                 <div className="flex items-start justify-between mb-4">
-                  <div className="text-5xl">{pet.emoji}</div>
-                  <div className={`px-3 py-1 rounded-full border text-xs ${RARITY_COLORS[pet.rarity]}`}>
-                    {pet.rarity === 'common' && 'Común'}
-                    {pet.rarity === 'rare' && 'Raro'}
-                    {pet.rarity === 'epic' && 'Épico'}
-                    {pet.rarity === 'legendary' && 'Legendario'}
+                  <div className="text-5xl relative">
+                    {isLocked ? (
+                      <>
+                        <span className="blur-sm">{petInfo.emoji}</span>
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <div className="text-3xl">🔒</div>
+                        </div>
+                      </>
+                    ) : (
+                      petInfo.emoji
+                    )}
+                  </div>
+                  <div className={`px-3 py-1 rounded-full border text-xs ${RARITY_COLORS[petInfo.rarity]}`}>
+                    {petInfo.rarity === 'common' && 'Común'}
+                    {petInfo.rarity === 'rare' && 'Raro'}
+                    {petInfo.rarity === 'epic' && 'Épico'}
+                    {petInfo.rarity === 'legendary' && 'Legendario'}
                   </div>
                 </div>
                 
-                <h4 className="text-lg font-bold text-gray-900 mb-1">{pet.name}</h4>
-                <p className="text-gray-600 text-sm mb-3">{pet.type}</p>
+                <h4 className={`text-lg font-bold mb-1 ${isLocked ? 'text-gray-400' : 'text-gray-900'}`}>
+                  {isLocked ? '???' : petInfo.name}
+                </h4>
+                <p className={`text-sm mb-3 ${isLocked ? 'text-gray-400' : 'text-gray-600'}`}>
+                  {isLocked ? 'Bloqueado' : petInfo.type}
+                </p>
                 
-                <div className="mb-4">
-                  <div className="flex items-center justify-between text-sm mb-1">
-                    <span className="text-gray-600 font-medium">Nivel {pet.level}</span>
-                    <span className="text-gray-600">{pet.experience}/{pet.maxExperience} XP</span>
+                {!isLocked && pet ? (
+                  <>
+                    <div className="mb-4">
+                      <div className="flex items-center justify-between text-sm mb-1">
+                        <span className="text-gray-600 font-medium">Nivel {pet.level}</span>
+                        <span className="text-gray-600">{pet.experience}/{pet.maxExperience} XP</span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div 
+                          className="h-2 rounded-full transition-all"
+                          style={{ 
+                            width: `${(pet.experience / pet.maxExperience) * 100}%`,
+                            backgroundColor: petInfo.color
+                          }}
+                        ></div>
+                      </div>
+                    </div>
+                    
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => handleSelectPet(pet)}
+                        className={`flex-1 py-2 rounded-lg text-sm transition-colors font-medium ${
+                          activePet?.id === pet.id
+                            ? 'bg-indigo-600 text-white'
+                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                        }`}
+                      >
+                        {activePet?.id === pet.id ? '✓ Activa' : 'Seleccionar'}
+                      </button>
+                      <button
+                        onClick={() => handleTrainPet(pet)}
+                        className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 text-sm flex items-center gap-1 font-medium"
+                      >
+                        <Zap className="w-4 h-4" />
+                        Entrenar
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <div className="py-8 text-center">
+                    <div className="text-4xl mb-2">🎁</div>
+                    <p className="text-gray-400 text-sm">Abre cajas para desbloquear</p>
                   </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div 
-                      className="h-2 rounded-full transition-all"
-                      style={{ 
-                        width: `${(pet.experience / pet.maxExperience) * 100}%`,
-                        backgroundColor: pet.color
-                      }}
-                    ></div>
-                  </div>
-                </div>
-                
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => handleSelectPet(pet)}
-                    className={`flex-1 py-2 rounded-lg text-sm transition-colors font-medium ${
-                      activePet?.id === pet.id
-                        ? 'bg-indigo-600 text-white'
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                    }`}
-                  >
-                    {activePet?.id === pet.id ? '✓ Activa' : 'Seleccionar'}
-                  </button>
-                  <button
-                    onClick={() => handleTrainPet(pet)}
-                    className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 text-sm flex items-center gap-1 font-medium"
-                  >
-                    <Zap className="w-4 h-4" />
-                    Entrenar
-                  </button>
-                </div>
+                )}
               </motion.div>
-            ))}
-          </div>
-        )}
+            );
+          })}
+        </div>
       </div>
     </div>
   );

@@ -42,14 +42,23 @@ Las mascotas otorgan bonos de XP automáticos basados en:
 
 ### Experiencia de Mascota
 
-Las mascotas ganan experiencia automáticamente:
-- Cada vez que el usuario gana XP, la mascota activa recibe 5 XP
-- Al alcanzar el XP máximo, la mascota sube de nivel
+Las mascotas ganan experiencia compartida con el usuario:
+- **La mascota activa recibe la MISMA cantidad de XP que gana el usuario** (incluyendo el bonus)
+- Ejemplo: Si ganas 10 XP y tienes +30% bonus = 13 XP → Tu mascota también gana 13 XP
+- Al alcanzar el XP máximo, la mascota sube de nivel automáticamente
 - Cada nivel aumenta el requisito de XP en 50 puntos
 - Nivel 1: 100 XP requerido
 - Nivel 2: 150 XP requerido
 - Nivel 3: 200 XP requerido
 - Y así sucesivamente...
+
+### Colección de Mascotas
+
+- 📚 **Todas las mascotas disponibles se muestran en la colección**
+- 🔒 **Mascotas bloqueadas** aparecen con candado y borrosas
+- ✨ **Ordenadas por rareza**: Común → Raro → Épico → Legendario
+- 📊 **Contador de progreso**: X/9 mascotas desbloqueadas
+- 🎁 Las mascotas bloqueadas muestran "Abre cajas para desbloquear"
 
 ## 🚀 Instalación
 
@@ -209,8 +218,9 @@ Muestra modal de celebración
 ```
 Acción genera XP (post, like, etc.) → 
 award_xp() obtiene bonus de mascota → 
-Aplica multiplicador → Actualiza perfil → 
-Da 5 XP a mascota activa → 
+Aplica multiplicador (ej: 10 XP + 30% = 13 XP) → 
+Actualiza perfil con XP final → 
+Da MISMA cantidad (13 XP) a mascota activa → 
 Trigger verifica level-up de mascota
 ```
 

@@ -75,10 +75,11 @@ BEGIN
   SET level = new_level
   WHERE id = user_id_param AND level != new_level;
   
-  -- Give XP to active pet if XP was positive
+  -- Give same XP to active pet if XP was positive
+  -- The pet receives the same amount as the user (with bonus included)
   IF xp_amount > 0 THEN
     UPDATE public.pets
-    SET experience = experience + 5
+    SET experience = experience + final_xp
     WHERE user_id = user_id_param AND is_active = true;
   END IF;
 END;
