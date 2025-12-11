@@ -283,14 +283,16 @@ export default function ConversationsList({ currentUserId, selectedConversationI
           )
         }
 
-        const otherUser = conversation.other_user
+        // Type assertion: if not a group conversation, it must be a regular Conversation
+        const regularConversation = conversation as Conversation
+        const otherUser = regularConversation.other_user
 
         if (!otherUser) return null
 
         return (
           <button
-            key={conversation.id}
-            onClick={() => handleConversationClick(conversation.id)}
+            key={regularConversation.id}
+            onClick={() => handleConversationClick(regularConversation.id)}
             className={`w-full p-4 hover:bg-gray-50 transition text-left ${
               isSelected ? 'bg-blue-50 hover:bg-blue-50' : ''
             }`}
@@ -319,9 +321,9 @@ export default function ConversationsList({ currentUserId, selectedConversationI
                   <h3 className="font-semibold text-gray-900 truncate">
                     {otherUser.username}
                   </h3>
-                  {conversation.last_message && (
+                  {regularConversation.last_message && (
                     <span className="text-xs text-gray-500 flex-shrink-0 ml-2" suppressHydrationWarning>
-                      {formatDistanceToNow(new Date(conversation.last_message.created_at), {
+                      {formatDistanceToNow(new Date(regularConversation.last_message.created_at), {
                         addSuffix: true,
                         locale: es,
                       })}
@@ -329,22 +331,22 @@ export default function ConversationsList({ currentUserId, selectedConversationI
                   )}
                 </div>
 
-                {conversation.last_message && (
+                {regularConversation.last_message && (
                   <p className={`text-sm truncate ${
-                    conversation.unread_count && conversation.unread_count > 0
+                    regularConversation.unread_count && regularConversation.unread_count > 0
                       ? 'font-semibold text-gray-900'
                       : 'text-gray-600'
                   }`}>
-                    {conversation.last_message.sender_id === currentUserId ? 'Tú: ' : ''}
-                    {conversation.last_message.content}
+                    {regularConversation.last_message.sender_id === currentUserId ? 'Tú: ' : ''}
+                    {regularConversation.last_message.content}
                   </p>
                 )}
 
                 {/* Unread badge */}
-                {conversation.unread_count && conversation.unread_count > 0 && (
+                {regularConversation.unread_count && regularConversation.unread_count > 0 && (
                   <div className="mt-1">
                     <span className="inline-block px-2 py-0.5 bg-blue-600 text-white text-xs font-semibold rounded-full">
-                      {conversation.unread_count}
+                      {regularConversation.unread_count}
                     </span>
                   </div>
                 )}

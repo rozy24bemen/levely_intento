@@ -2,7 +2,8 @@
 
 import { useState } from 'react';
 import { usePets, Pet } from '@/contexts/PetContext';
-import { Gift, Star, Zap, TrendingUp, Sparkles } from 'lucide-react';
+import { useCurrency } from '@/contexts/CurrencyContext';
+import { Gift, Star, Zap, TrendingUp, Sparkles, ShoppingCart, Coins } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 // Ordenadas por rareza (común, raro, épico, legendario)
@@ -36,14 +37,79 @@ const RARITY_CHANCES = {
   legendary: 0.03,
 };
 
+interface FoodItem {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  xp: number;
+  rarity: 'basic' | 'premium' | 'epic' | 'legendary';
+  emoji: string;
+  color: string;
+}
+
+const foodItems: FoodItem[] = [
+  {
+    id: 'basic-food',
+    name: 'Pienso Básico',
+    description: 'Comida simple pero nutritiva',
+    price: 50,
+    xp: 10,
+    rarity: 'basic',
+    emoji: '🍖',
+    color: '#9ca3af'
+  },
+  {
+    id: 'premium-food',
+    name: 'Comida Premium',
+    description: 'Deliciosa y energizante',
+    price: 150,
+    xp: 30,
+    rarity: 'premium',
+    emoji: '🥩',
+    color: '#3b82f6'
+  },
+  {
+    id: 'epic-food',
+    name: 'Festín Épico',
+    description: '¡Un banquete para tu mascota!',
+    price: 500,
+    xp: 100,
+    rarity: 'epic',
+    emoji: '🍗',
+    color: '#a855f7'
+  },
+  {
+    id: 'legendary-food',
+    name: 'Golosina Legendaria',
+    description: 'El manjar de los dioses',
+    price: 1000,
+    xp: 250,
+    rarity: 'legendary',
+    emoji: '🍰',
+    color: '#eab308'
+  },
+];
+
+const FOOD_RARITY_STYLES = {
+  basic: 'bg-gray-100 border-gray-300',
+  premium: 'bg-blue-100 border-blue-400',
+  epic: 'bg-purple-100 border-purple-400',
+  legendary: 'bg-gradient-to-br from-yellow-100 to-orange-100 border-yellow-400',
+};
+
 export default function PetsPage() {
   const { pets, activePet, setActivePet, addPet, addExperience, getXPBonus } = usePets();
+  const { coins, spendCoins, updateMissionProgress } = useCurrency();
   const [openingBox, setOpeningBox] = useState(false);
   const [newPet, setNewPet] = useState<Pet | null>(null);
   const [clickCount, setClickCount] = useState(0);
   const [particles, setParticles] = useState<Array<{ id: number; x: number; y: number; color: string; size: number }>>([]);
   const [shake, setShake] = useState(0);
   const clicksNeeded = 5;
+  const [selectedFood, setSelectedFood] = useState<FoodItem | null>(null);
+  const [purchaseAnimation, setPurchaseAnimation] = useState(false);
+  const [feedingAnimation, setFeedingAnimation] = useState(false);
 
   // Crear lista de todas las mascotas con estado bloqueado/desbloqueado
   const allPetsWithStatus = AVAILABLE_PETS.map(availablePet => {
@@ -140,20 +206,64 @@ export default function PetsPage() {
     addExperience(pet.id, 50);
   };
 
+  const handlePurchaseFood = async (food: FoodItem) => {
+    if (!activePet) {
+      alert('¡Necesitas una mascota activa para alimentar!');
+      return;
+    }
+
+    const success = spendCoins(food.price);
+    if (!success) {
+      alert('¡No tienes suficientes monedas!');
+      return;
+    }
+
+    setSelectedFood(food);
+    setPurchaseAnimation(true);
+
+    // Wait for purchase animation
+    setTimeout(() => {
+      setPurchaseAnimation(false);
+      setFeedingAnimation(true);
+
+      // Add XP to active pet
+      addExperience(activePet.id, food.xp);
+
+      // Complete feeding animation
+      setTimeout(() => {
+        setFeedingAnimation(false);
+        setSelectedFood(null);
+        
+        // Update mission progress (future feature)
+        updateMissionProgress('feed_pet', 1);
+      }, 2000);
+    }, 1500);
+  };
+
   return (
     <div className="max-w-6xl mx-auto px-4 py-6">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="flex items-center gap-3 text-3xl font-bold text-gray-900">
-          <Sparkles className="w-8 h-8 text-indigo-600" />
-          Mis Mascotas
-        </h1>
-        <p className="text-gray-600 mt-2">Abre cajas, desbloquea mascotas y súbelas de nivel</p>
-        {activePet && (
-          <div className="mt-2 text-sm text-indigo-600 font-medium">
-            🎁 Bonificación actual: +{getXPBonus()}% XP
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="flex items-center gap-3 text-3xl font-bold text-gray-900">
+              <Sparkles className="w-8 h-8 text-indigo-600" />
+              Mis Mascotas
+            </h1>
+            <p className="text-gray-600 mt-2">Abre cajas, desbloquea mascotas y súbelas de nivel</p>
+            {activePet && (
+              <div className="mt-2 text-sm text-indigo-600 font-medium">
+                🎁 Bonificación actual: +{getXPBonus()}% XP
+              </div>
+            )}
           </div>
-        )}
+          
+          {/* Coins Display */}
+          <div className="flex items-center gap-2 bg-yellow-50 border-2 border-yellow-300 px-4 py-2 rounded-full">
+            <Coins className="w-6 h-6 text-yellow-600" />
+            <span className="text-xl font-bold text-yellow-700">{coins}</span>
+          </div>
+        </div>
       </div>
 
       {/* Open Box Section */}
@@ -478,6 +588,141 @@ export default function PetsPage() {
           </div>
         </div>
       )}
+
+      {/* Food Shop */}
+      <div className="bg-white rounded-2xl p-6 mb-8 border-2 border-indigo-200">
+        <div className="flex items-center gap-2 mb-6">
+          <ShoppingCart className="w-6 h-6 text-indigo-600" />
+          <h3 className="text-2xl font-bold text-gray-900">Tienda de Comida</h3>
+        </div>
+        
+        {!activePet ? (
+          <div className="bg-yellow-50 border-2 border-yellow-300 rounded-lg p-4 text-center">
+            <p className="text-yellow-800">
+              ⚠️ Necesitas seleccionar una mascota activa para comprar comida
+            </p>
+          </div>
+        ) : (
+          <>
+            <p className="text-gray-600 mb-6">Alimenta a tu mascota para que gane experiencia más rápido</p>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {foodItems.map((food) => {
+                const canAfford = coins >= food.price;
+                
+                return (
+                  <motion.div
+                    key={food.id}
+                    whileHover={canAfford ? { scale: 1.05 } : {}}
+                    className={`border-2 rounded-xl p-4 transition-all ${FOOD_RARITY_STYLES[food.rarity]} ${
+                      !canAfford ? 'opacity-50' : ''
+                    }`}
+                  >
+                    <div className="text-center">
+                      <div className="text-5xl mb-3">{food.emoji}</div>
+                      <h4 className="font-bold text-gray-900 mb-1">{food.name}</h4>
+                      <p className="text-xs text-gray-600 mb-3">{food.description}</p>
+                      
+                      <div className="bg-white/50 rounded-lg p-2 mb-3">
+                        <div className="text-sm text-gray-700">
+                          <div className="flex items-center justify-center gap-1 mb-1">
+                            <Zap className="w-4 h-4 text-green-600" />
+                            <span className="font-bold">+{food.xp} XP</span>
+                          </div>
+                          <div className="flex items-center justify-center gap-1">
+                            <Coins className="w-4 h-4 text-yellow-600" />
+                            <span className="font-bold">{food.price}</span>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <button
+                        onClick={() => handlePurchaseFood(food)}
+                        disabled={!canAfford}
+                        className={`w-full py-2 rounded-lg font-medium transition-all ${
+                          canAfford
+                            ? 'bg-indigo-600 text-white hover:bg-indigo-700'
+                            : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                        }`}
+                      >
+                        {canAfford ? 'Comprar' : 'Sin monedas'}
+                      </button>
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </div>
+          </>
+        )}
+      </div>
+
+      {/* Purchase Animation Modal */}
+      <AnimatePresence>
+        {purchaseAnimation && selectedFood && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 backdrop-blur-sm"
+          >
+            <motion.div
+              initial={{ scale: 0, rotate: 0 }}
+              animate={{ scale: 1, rotate: 360 }}
+              exit={{ scale: 0, rotate: -360 }}
+              transition={{ duration: 1.5 }}
+              className="text-9xl"
+            >
+              {selectedFood.emoji}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Feeding Animation Modal */}
+      <AnimatePresence>
+        {feedingAnimation && selectedFood && activePet && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 backdrop-blur-sm"
+          >
+            <motion.div className="bg-white rounded-2xl p-8 text-center max-w-md">
+              <motion.div
+                animate={{ 
+                  scale: [1, 1.2, 1],
+                  rotate: [0, 10, -10, 0]
+                }}
+                transition={{ duration: 0.5, repeat: 3 }}
+                className="text-8xl mb-4"
+              >
+                {activePet.emoji}
+              </motion.div>
+              
+              <motion.div
+                initial={{ y: -50, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                className="text-6xl mb-4"
+              >
+                {selectedFood.emoji}
+              </motion.div>
+              
+              <h3 className="text-2xl font-bold text-gray-900 mb-2">¡Ñam ñam!</h3>
+              <p className="text-gray-600 mb-4">{activePet.name} está comiendo...</p>
+              
+              <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ delay: 1 }}
+                className="inline-flex items-center gap-2 bg-green-100 text-green-700 px-4 py-2 rounded-full font-bold"
+              >
+                <Zap className="w-5 h-5" />
+                +{selectedFood.xp} XP
+              </motion.div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Pets Grid */}
       <div>

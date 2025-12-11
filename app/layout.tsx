@@ -6,6 +6,7 @@ import Navbar from '@/components/Navbar'
 import XPNotificationContainer from '@/components/XPNotifications'
 import MessageNotifications from '@/components/MessageNotifications'
 import { PetProvider } from '@/contexts/PetContext'
+import { CurrencyProvider } from '@/contexts/CurrencyContext'
 import FloatingPet from '@/components/FloatingPet'
 
 const geistSans = Geist({
@@ -46,13 +47,15 @@ export default async function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <PetProvider>
-          <Navbar user={user} profile={profile} />
-          {children}
-          <XPNotificationContainer />
-          {user && <MessageNotifications userId={user.id} />}
-          <FloatingPet />
-        </PetProvider>
+        <CurrencyProvider>
+          <PetProvider>
+            <Navbar user={user} profile={profile} />
+            {children}
+            <XPNotificationContainer />
+            {user && <MessageNotifications userId={user.id} />}
+            <FloatingPet />
+          </PetProvider>
+        </CurrencyProvider>
       </body>
     </html>
   );
