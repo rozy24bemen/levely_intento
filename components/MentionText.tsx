@@ -8,7 +8,7 @@ interface MentionTextProps {
 export default function MentionText({ text, className = '' }: MentionTextProps) {
   // Parse text and replace @[username](userId) with clickable links
   const parseText = (content: string) => {
-    const parts: (string | JSX.Element)[] = []
+    const parts: (string | React.ReactElement)[] = []
     const mentionRegex = /@\[([^\]]+)\]\(([^)]+)\)/g
     let lastIndex = 0
     let match
