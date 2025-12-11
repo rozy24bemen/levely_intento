@@ -9,34 +9,112 @@ export default async function ShortsPage() {
   
   const { data: { user } } = await supabase.auth.getUser()
   
-  const { data: shortsData, error } = await supabase
-    .from('shorts')
-    .select(`
-      id,
-      author_id,
-      video_url,
-      thumbnail_url,
-      title,
-      description,
-      likes_count,
-      comments_count,
-      views_count,
-      created_at,
-      profiles!shorts_author_id_fkey (
-        id,
-        username,
-        avatar_url,
-        level
-      )
-    `)
-    .order('created_at', { ascending: false })
-    .limit(50)
+  let shortsData: Short[] | null = null
 
-  // Transform the data to match our Short type
-  const shorts = shortsData?.map((short: any) => ({
-    ...short,
-    profiles: Array.isArray(short.profiles) ? short.profiles[0] : short.profiles
-  })) as Short[] | null
+  if (user) {
+    // Get personalized shorts feed using recommendation algorithm
+    const { data: recommendedShortIds } = await supabase
+      .rpc('calculate_personalized_shorts_feed', {
+        target_user_id: user.id,
+        limit_count: 50
+      })
+
+    if (recommendedShortIds && recommendedShortIds.length > 0) {
+      const shortIds = recommendedShortIds.map((item: any) => item.short_id)
+      
+      const { data } = await supabase
+        .from('shorts')
+        .select(`
+          id,
+          author_id,
+          video_url,
+          thumbnail_url,
+          title,
+          description,
+          likes_count,
+          comments_count,
+          views_count,
+          created_at,
+          profiles!shorts_author_id_fkey (
+            id,
+            username,
+            avatar_url,
+            level
+          )
+        `)
+        .in('id', shortIds)
+
+      const shorts = data?.map((short: any) => ({
+        ...short,
+        profiles: Array.isArray(short.profiles) ? short.profiles[0] : short.profiles
+      })) || []
+
+      // Sort by recommendation score
+      const scoreMap = new Map(recommendedShortIds.map((item: any) => [item.short_id, item.final_score]))
+      shortsData = shorts.sort((a, b) => (scoreMap.get(b.id) || 0) - (scoreMap.get(a.id) || 0))
+    }
+
+    // Fallback to recent shorts if no recommendations
+    if (!shortsData || shortsData.length === 0) {
+      const { data } = await supabase
+        .from('shorts')
+        .select(`
+          id,
+          author_id,
+          video_url,
+          thumbnail_url,
+          title,
+          description,
+          likes_count,
+          comments_count,
+          views_count,
+          created_at,
+          profiles!shorts_author_id_fkey (
+            id,
+            username,
+            avatar_url,
+            level
+          )
+        `)
+        .neq('author_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(50)
+
+      shortsData = data?.map((short: any) => ({
+        ...short,
+        profiles: Array.isArray(short.profiles) ? short.profiles[0] : short.profiles
+      })) || []
+    }
+  } else {
+    // Show recent shorts for non-authenticated users
+    const { data } = await supabase
+      .from('shorts')
+      .select(`
+        id,
+        author_id,
+        video_url,
+        thumbnail_url,
+        title,
+        description,
+        likes_count,
+        comments_count,
+        views_count,
+        created_at,
+        profiles!shorts_author_id_fkey (
+          id,
+          username,
+          avatar_url,
+          level
+        )
+      `)
+      .order('created_at', { ascending: false })
+      .limit(50)
+
+    shortsData = data?.map((short: any) => ({
+      ...short,
+      profiles: Array.isArray(short.profiles) ? short.profiles[0] : short.profiles
+    })) || []
+  }
 
   if (!user) {
     return (
@@ -75,8 +153,8 @@ export default async function ShortsPage() {
 
       {/* Shorts container */}
       <ShortsContainer 
-        initialShorts={shorts || []} 
-        currentUserId={user.id}
+        initialShorts={shortsData || []} 
+        currentUserId={user?.id}
       />
     </div>
   )

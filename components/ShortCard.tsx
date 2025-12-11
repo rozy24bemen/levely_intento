@@ -3,6 +3,7 @@
 import { Heart, MessageCircle, Share2, X, UserPlus, UserCheck } from 'lucide-react'
 import { useState, useRef, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/browserClient'
+import { useInteractionTracking } from '@/lib/hooks/useInteractionTracking'
 import type { Short } from '@/lib/types'
 import { notifyXPGain } from './XPNotifications'
 import ShortCommentsList from './ShortCommentsList'
@@ -28,6 +29,13 @@ export default function ShortCard({ short, currentUserId, isActive }: ShortCardP
   const videoRef = useRef<HTMLVideoElement>(null)
   const progressBarRef = useRef<HTMLDivElement>(null)
   const supabase = createClient()
+
+  // Track interactions for recommendation algorithm
+  const { trackLike, trackComment } = useInteractionTracking({
+    userId: currentUserId,
+    shortId: short.id,
+    enabled: !!currentUserId && isActive
+  })
 
   // Check if user has already liked this short
   useEffect(() => {
@@ -156,6 +164,8 @@ export default function ShortCard({ short, currentUserId, isActive }: ShortCardP
         
         setLiked(true)
         setLikesCount(prev => prev + 1)
+        // Track like for recommendation algorithm
+        trackLike()
       }
     } catch (error: any) {
       console.error('Error toggling like:', error)

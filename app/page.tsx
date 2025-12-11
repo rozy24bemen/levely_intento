@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/serverClient'
 import PostCard from '@/components/PostCard'
 import CreatePostForm from '@/components/CreatePostForm'
+import FeedTabs from '@/components/FeedTabs'
 import type { Post } from '@/lib/types'
 import { CheckCircle } from 'lucide-react'
 
@@ -14,10 +15,53 @@ export default async function Home({ searchParams }: PageProps) {
   
   const { data: { user } } = await supabase.auth.getUser()
   
-  let postsData, error
+  let forYouPosts: Post[] = []
+  let followingPosts: Post[] = []
+  let postsData: Post[] | null = null
+  let error = null
   
   if (user) {
-    // Get list of users that current user follows
+    // Get "For You" feed using recommendation algorithm
+    const { data: recommendedPostIds } = await supabase
+      .rpc('calculate_personalized_posts_feed', {
+        target_user_id: user.id,
+        limit_count: 30
+      })
+
+    if (recommendedPostIds && recommendedPostIds.length > 0) {
+      const postIds = recommendedPostIds.map((item: any) => item.post_id)
+      
+      const { data: forYouData } = await supabase
+        .from('posts')
+        .select(`
+          id,
+          content,
+          created_at,
+          likes_count,
+          comments_count,
+          media_url,
+          media_type,
+          author_id,
+          profiles!posts_author_id_fkey (
+            id,
+            username,
+            avatar_url,
+            level
+          )
+        `)
+        .in('id', postIds)
+
+      forYouPosts = forYouData?.map((post: any) => ({
+        ...post,
+        profiles: Array.isArray(post.profiles) ? post.profiles[0] : post.profiles
+      })) || []
+
+      // Sort by recommendation score
+      const scoreMap = new Map(recommendedPostIds.map((item: any) => [item.post_id, item.final_score]))
+      forYouPosts.sort((a, b) => (scoreMap.get(b.id) || 0) - (scoreMap.get(a.id) || 0))
+    }
+
+    // Get "Following" feed
     const { data: followsData } = await supabase
       .from('follows')
       .select('following_id')
@@ -25,33 +69,66 @@ export default async function Home({ searchParams }: PageProps) {
 
     const followingIds = followsData?.map(f => f.following_id) || []
     
-    // Get posts from users you follow + your own posts
-    const authorIds = [user.id, ...followingIds]
-    
-    const { data, error: fetchError } = await supabase
-      .from('posts')
-      .select(`
-        id,
-        content,
-        created_at,
-        likes_count,
-        comments_count,
-        media_url,
-        media_type,
-        author_id,
-        profiles!posts_author_id_fkey (
+    if (followingIds.length > 0) {
+      const authorIds = [user.id, ...followingIds]
+      
+      const { data: followingData } = await supabase
+        .from('posts')
+        .select(`
           id,
-          username,
-          avatar_url,
-          level
-        )
-      `)
-      .in('author_id', authorIds)
-      .order('created_at', { ascending: false })
-      .limit(20)
+          content,
+          created_at,
+          likes_count,
+          comments_count,
+          media_url,
+          media_type,
+          author_id,
+          profiles!posts_author_id_fkey (
+            id,
+            username,
+            avatar_url,
+            level
+          )
+        `)
+        .in('author_id', authorIds)
+        .order('created_at', { ascending: false })
+        .limit(30)
 
-    postsData = data
-    error = fetchError
+      followingPosts = followingData?.map((post: any) => ({
+        ...post,
+        profiles: Array.isArray(post.profiles) ? post.profiles[0] : post.profiles
+      })) || []
+    }
+
+    // If forYouPosts is empty, fallback to recent posts
+    if (forYouPosts.length === 0) {
+      const { data: recentData } = await supabase
+        .from('posts')
+        .select(`
+          id,
+          content,
+          created_at,
+          likes_count,
+          comments_count,
+          media_url,
+          media_type,
+          author_id,
+          profiles!posts_author_id_fkey (
+            id,
+            username,
+            avatar_url,
+            level
+          )
+        `)
+        .neq('author_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(30)
+
+      forYouPosts = recentData?.map((post: any) => ({
+        ...post,
+        profiles: Array.isArray(post.profiles) ? post.profiles[0] : post.profiles
+      })) || []
+    }
   } else {
     // Show all posts for non-authenticated users
     const { data, error: fetchError } = await supabase
@@ -72,17 +149,15 @@ export default async function Home({ searchParams }: PageProps) {
         )
       `)
       .order('created_at', { ascending: false })
-      .limit(20)
+      .limit(30)
 
-    postsData = data
+    postsData = data?.map((post: any) => ({
+      ...post,
+      profiles: Array.isArray(post.profiles) ? post.profiles[0] : post.profiles
+    })) as Post[] | null
+    
     error = fetchError
   }
-
-  // Transform the data to match our Post type (profiles is returned as array, we need object)
-  const posts = postsData?.map((post: any) => ({
-    ...post,
-    profiles: Array.isArray(post.profiles) ? post.profiles[0] : post.profiles
-  })) as Post[] | null
 
   return (
     <main className="min-h-screen bg-gray-50">
@@ -123,23 +198,31 @@ export default async function Home({ searchParams }: PageProps) {
           </div>
         )}
 
-        <div className="space-y-4">
-          {error && (
-            <div className="p-4 bg-red-50 text-red-600 rounded-lg">
-              Error al cargar posts: {error.message}
-            </div>
-          )}
-          
-          {posts && posts.length === 0 && (
-            <div className="p-8 bg-white rounded-lg shadow-sm text-center text-gray-500">
-              No hay posts aún. ¡Sé el primero en publicar!
-            </div>
-          )}
-          
-          {posts?.map((post) => (
-            <PostCard key={post.id} post={post} currentUserId={user?.id} />
-          ))}
-        </div>
+        {user ? (
+          <FeedTabs 
+            forYouPosts={forYouPosts}
+            followingPosts={followingPosts}
+            currentUserId={user.id}
+          />
+        ) : (
+          <div className="space-y-4">
+            {error && (
+              <div className="p-4 bg-red-50 text-red-600 rounded-lg">
+                Error al cargar posts: {error.message}
+              </div>
+            )}
+            
+            {postsData && postsData.length === 0 && (
+              <div className="p-8 bg-white rounded-lg shadow-sm text-center text-gray-500">
+                No hay posts aún. ¡Sé el primero en publicar!
+              </div>
+            )}
+            
+            {postsData?.map((post) => (
+              <PostCard key={post.id} post={post} currentUserId={user?.id} />
+            ))}
+          </div>
+        )}
       </div>
     </main>
   )

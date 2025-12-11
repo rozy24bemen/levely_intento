@@ -7,6 +7,7 @@ import CommentsList from './CommentsList'
 import ImageModal from './ImageModal'
 import VideoModal from './VideoModal'
 import MentionText from './MentionText'
+import { useInteractionTracking } from '@/lib/hooks/useInteractionTracking'
 import type { Post } from '@/lib/types'
 import Link from 'next/link'
 import Image from 'next/image'
@@ -20,6 +21,13 @@ export default function PostCard({ post, currentUserId }: { post: Post; currentU
   const [showVideoModal, setShowVideoModal] = useState(false)
   const [loading, setLoading] = useState(false)
   const supabase = createClient()
+
+  // Track interactions for recommendation algorithm
+  const { trackLike, trackComment } = useInteractionTracking({
+    userId: currentUserId,
+    postId: post.id,
+    enabled: !!currentUserId
+  })
 
   // Check if current user already liked this post
   useEffect(() => {
@@ -65,12 +73,22 @@ export default function PostCard({ post, currentUserId }: { post: Post; currentU
         if (!error) {
           setLiked(true)
           setLikesCount(prev => prev + 1)
+          // Track like for recommendation algorithm
+          trackLike()
         }
       }
     } catch (error) {
       console.error('Error toggling like:', error)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleShowComments = () => {
+    setShowComments(!showComments)
+    if (!showComments) {
+      // Track comment interaction when opening comments
+      trackComment()
     }
   }
 
@@ -178,7 +196,7 @@ export default function PostCard({ post, currentUserId }: { post: Post; currentU
         </button>
 
         <button
-          onClick={() => setShowComments(!showComments)}
+          onClick={handleShowComments}
           className={`flex items-center gap-2 px-3 py-1.5 rounded-full transition ${
             showComments
               ? 'bg-blue-50 text-blue-600'
