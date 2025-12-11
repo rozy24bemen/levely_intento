@@ -71,8 +71,10 @@ export function useInteractionTracking({
               watch_time_seconds: watchTime,
               timestamp: new Date().toISOString()
             }
-          }).catch((error: any) => {
-            console.error('Error tracking watch time:', error)
+          }).then(({ error }) => {
+            if (error) {
+              console.error('Error tracking watch time:', error)
+            }
           })
         }
       }
