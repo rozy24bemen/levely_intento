@@ -41,10 +41,12 @@ export type Comment = {
   content: string
   parent_id: string | null
   replies_count: number
+  likes_count: number
   created_at: string
   updated_at: string
   profiles: Profile | null
   replies?: Comment[]
+  user_has_liked?: boolean
 }
 
 export type Short = {

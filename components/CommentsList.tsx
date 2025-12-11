@@ -33,6 +33,7 @@ export default function CommentsList({ postId, currentUserId, initialCount = 0 }
           content,
           parent_id,
           replies_count,
+          likes_count,
           created_at,
           updated_at,
           profiles!comments_author_id_fkey (
@@ -48,10 +49,23 @@ export default function CommentsList({ postId, currentUserId, initialCount = 0 }
 
       if (error) throw error
 
-      // Transform profiles from array to single object
+      // Check which comments the current user has liked
+      let userLikes: Set<string> = new Set()
+      if (currentUserId) {
+        const { data: likesData } = await supabase
+          .from('comment_likes')
+          .select('comment_id')
+          .eq('user_id', currentUserId)
+          .in('comment_id', data?.map(c => c.id) || [])
+
+        userLikes = new Set(likesData?.map(like => like.comment_id) || [])
+      }
+
+      // Transform profiles from array to single object and add user_has_liked
       const transformedComments = (data || []).map((comment: any) => ({
         ...comment,
-        profiles: Array.isArray(comment.profiles) ? comment.profiles[0] : comment.profiles
+        profiles: Array.isArray(comment.profiles) ? comment.profiles[0] : comment.profiles,
+        user_has_liked: userLikes.has(comment.id)
       }))
 
       setComments(transformedComments)

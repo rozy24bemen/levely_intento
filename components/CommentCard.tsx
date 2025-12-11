@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Trash2, MessageCircle, Send } from 'lucide-react'
+import { Trash2, MessageCircle, Send, Heart } from 'lucide-react'
 import { createClient } from '@/lib/supabase/browserClient'
 import type { Comment } from '@/lib/types'
 import Image from 'next/image'
@@ -23,6 +23,9 @@ export default function CommentCard({ comment, currentUserId, onDelete, onReply,
   const [showReplies, setShowReplies] = useState(false)
   const [replies, setReplies] = useState<Comment[]>([])
   const [loadingReplies, setLoadingReplies] = useState(false)
+  const [isLiked, setIsLiked] = useState(comment.user_has_liked || false)
+  const [likesCount, setLikesCount] = useState(comment.likes_count || 0)
+  const [isLiking, setIsLiking] = useState(false)
   const supabase = createClient()
   const isOwnComment = currentUserId === comment.author_id
 
@@ -63,6 +66,7 @@ export default function CommentCard({ comment, currentUserId, onDelete, onReply,
           content,
           parent_id,
           replies_count,
+          likes_count,
           created_at,
           updated_at,
           profiles!comments_author_id_fkey (
@@ -77,9 +81,22 @@ export default function CommentCard({ comment, currentUserId, onDelete, onReply,
 
       if (error) throw error
 
+      // Check which replies the current user has liked
+      let userLikes: Set<string> = new Set()
+      if (currentUserId) {
+        const { data: likesData } = await supabase
+          .from('comment_likes')
+          .select('comment_id')
+          .eq('user_id', currentUserId)
+          .in('comment_id', data?.map(c => c.id) || [])
+
+        userLikes = new Set(likesData?.map(like => like.comment_id) || [])
+      }
+
       const transformedData = data?.map((reply: any) => ({
         ...reply,
-        profiles: Array.isArray(reply.profiles) ? reply.profiles[0] : reply.profiles
+        profiles: Array.isArray(reply.profiles) ? reply.profiles[0] : reply.profiles,
+        user_has_liked: userLikes.has(reply.id)
       })) as Comment[]
 
       setReplies(transformedData || [])
@@ -119,6 +136,48 @@ export default function CommentCard({ comment, currentUserId, onDelete, onReply,
       alert('Error al enviar la respuesta')
     } finally {
       setIsReplying(false)
+    }
+  }
+
+  const handleLike = async () => {
+    if (!currentUserId || isLiking) return
+
+    setIsLiking(true)
+    const previousIsLiked = isLiked
+    const previousLikesCount = likesCount
+
+    // Optimistic update
+    setIsLiked(!isLiked)
+    setLikesCount(isLiked ? likesCount - 1 : likesCount + 1)
+
+    try {
+      if (isLiked) {
+        // Unlike
+        const { error } = await supabase
+          .from('comment_likes')
+          .delete()
+          .eq('comment_id', comment.id)
+          .eq('user_id', currentUserId)
+
+        if (error) throw error
+      } else {
+        // Like
+        const { error } = await supabase
+          .from('comment_likes')
+          .insert({
+            comment_id: comment.id,
+            user_id: currentUserId,
+          })
+
+        if (error) throw error
+      }
+    } catch (error) {
+      console.error('Error toggling like:', error)
+      // Revert optimistic update
+      setIsLiked(previousIsLiked)
+      setLikesCount(previousLikesCount)
+    } finally {
+      setIsLiking(false)
     }
   }
 
@@ -167,24 +226,41 @@ export default function CommentCard({ comment, currentUserId, onDelete, onReply,
           {comment.content}
         </p>
 
-        {/* Reply button (only show for top-level comments) */}
-        {!isReply && currentUserId && (
-          <div className="flex items-center gap-3 mt-2">
+        {/* Action buttons */}
+        {currentUserId && (
+          <div className="flex items-center gap-4 mt-2">
+            {/* Like button */}
             <button
-              onClick={() => setShowReplyForm(!showReplyForm)}
-              className="flex items-center gap-1 text-xs text-gray-500 hover:text-blue-600 transition"
+              onClick={handleLike}
+              disabled={isLiking}
+              className="flex items-center gap-1 text-xs text-gray-500 hover:text-red-600 transition"
             >
-              <MessageCircle className="w-3.5 h-3.5" />
-              Responder
+              <Heart 
+                className={`w-3.5 h-3.5 ${isLiked ? 'fill-red-500 text-red-500' : ''}`}
+              />
+              {likesCount > 0 && <span className={isLiked ? 'text-red-600' : ''}>{likesCount}</span>}
             </button>
-            
-            {comment.replies_count > 0 && (
-              <button
-                onClick={() => showReplies ? setShowReplies(false) : loadReplies()}
-                className="text-xs text-blue-600 hover:underline"
-              >
-                {showReplies ? 'Ocultar' : `Ver ${comment.replies_count} ${comment.replies_count === 1 ? 'respuesta' : 'respuestas'}`}
-              </button>
+
+            {/* Reply button (only show for top-level comments) */}
+            {!isReply && (
+              <>
+                <button
+                  onClick={() => setShowReplyForm(!showReplyForm)}
+                  className="flex items-center gap-1 text-xs text-gray-500 hover:text-blue-600 transition"
+                >
+                  <MessageCircle className="w-3.5 h-3.5" />
+                  Responder
+                </button>
+                
+                {comment.replies_count > 0 && (
+                  <button
+                    onClick={() => showReplies ? setShowReplies(false) : loadReplies()}
+                    className="text-xs text-blue-600 hover:underline"
+                  >
+                    {showReplies ? 'Ocultar' : `Ver ${comment.replies_count} ${comment.replies_count === 1 ? 'respuesta' : 'respuestas'}`}
+                  </button>
+                )}
+              </>
             )}
           </div>
         )}
