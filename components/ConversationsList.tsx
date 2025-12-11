@@ -160,10 +160,10 @@ export default function ConversationsList({ currentUserId, selectedConversationI
         const groupIds = groupMemberships.map((g: any) => g.group_id)
 
         const { data: groups } = await supabase
-          .from('group_conversations')
+          .from('groups')
           .select('*')
           .in('id', groupIds)
-          .order('last_message_at', { ascending: false })
+          .order('created_at', { ascending: false })
 
         if (groups && groups.length > 0) {
           // Get last messages for groups

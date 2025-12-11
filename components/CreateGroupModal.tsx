@@ -58,7 +58,15 @@ export default function CreateGroupModal({ isOpen, onClose, currentUserId }: { i
     setCreating(true)
     try {
       const memberIds = selected.map(s => s.id)
-      const { data, error } = await supabase.rpc('create_group', { owner: currentUserId, member_ids: memberIds })
+      // Create group name from usernames
+      const groupName = selected.map(s => s.username).join(', ')
+      
+      const { data, error } = await supabase.rpc('create_group', { 
+        p_name: groupName,
+        p_owner_id: currentUserId, 
+        p_member_ids: memberIds 
+      })
+      
       if (error) throw error
       const groupId = data
       onClose()

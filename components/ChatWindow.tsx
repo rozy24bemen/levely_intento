@@ -144,13 +144,13 @@ export default function ChatWindow({ conversationId, currentUserId }: ChatWindow
   const loadGroupInfo = async () => {
     try {
       if (!groupId) return
-      const { data: group } = await supabase.from('group_conversations').select('*').eq('id', groupId).single()
+      const { data: group } = await supabase.from('groups').select('*').eq('id', groupId).single()
       if (!group) return
       // load members
       const { data: members } = await supabase.from('group_members').select('user_id').eq('group_id', groupId)
       const memberIds = members?.map((m:any) => m.user_id) || []
       const { data: profiles } = await supabase.from('profiles').select('id, username, avatar_url, level').in('id', memberIds)
-      setOtherUser({ id: group.owner_id, username: group.name || '', avatar_url: null, level: 0 })
+      setOtherUser({ id: group.owner_id, username: group.name || 'Grupo', avatar_url: null, level: 0 })
       // store group members somewhere? we'll reuse otherUser for header username when group
     } catch (err) {
       console.error('Error loading group info:', err)
@@ -211,8 +211,15 @@ export default function ChatWindow({ conversationId, currentUserId }: ChatWindow
 
     try {
       if (isGroup && groupId) {
-        // send via RPC
-        const { data, error } = await supabase.rpc('send_group_message', { g_id: groupId, sender: currentUserId, msg: messageContent })
+        // Send group message directly
+        const { error } = await supabase
+          .from('group_messages')
+          .insert({ 
+            group_id: groupId, 
+            sender_id: currentUserId, 
+            content: messageContent 
+          })
+        
         if (error) throw error
       } else {
         // Get conversation participants
