@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { createClient } from '@/lib/supabase/browserClient';
 
 export type Pet = {
   id: string;
@@ -42,7 +42,7 @@ export function PetProvider({ children }: { children: ReactNode }) {
   const [pets, setPets] = useState<Pet[]>([]);
   const [activePet, setActivePetState] = useState<Pet | null>(null);
   const [loading, setLoading] = useState(true);
-  const supabase = createClientComponentClient();
+  const supabase = createClient();
 
   // Fetch pets from database
   const fetchPets = async () => {
