@@ -469,6 +469,16 @@ export default function PetsPage() {
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-2">
                   <div 
+                    className="bg-indigo-600 h-2 rounded-full transition-all"
+                    style={{ width: `${(activePet.experience / activePet.maxExperience) * 100}%` }}
+                  ></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Pets Grid */}
       <div>
         <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
