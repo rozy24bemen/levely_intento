@@ -84,6 +84,39 @@ export default function ConversationsList({ currentUserId, selectedConversationI
           loadConversations()
         }
       )
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'group_messages',
+        },
+        () => {
+          loadConversations()
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'groups',
+        },
+        () => {
+          loadConversations()
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'group_members',
+        },
+        () => {
+          loadConversations()
+        }
+      )
       .subscribe()
 
     return () => {

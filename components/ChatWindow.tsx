@@ -178,9 +178,32 @@ export default function ChatWindow({ conversationId, currentUserId }: ChatWindow
   const loadGroupMessages = async () => {
     try {
       if (!groupId) return
-      const { data, error } = await supabase.from('group_messages').select('*').eq('group_id', groupId).order('created_at', { ascending: true })
+      const { data, error } = await supabase
+        .from('group_messages')
+        .select('*')
+        .eq('group_id', groupId)
+        .order('created_at', { ascending: true })
+      
       if (error) throw error
-      setMessages(data || [])
+      
+      // Load sender profiles for group messages
+      if (data && data.length > 0) {
+        const senderIds = [...new Set(data.map(m => m.sender_id))]
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('id, username')
+          .in('id', senderIds)
+        
+        // Attach username to each message
+        const messagesWithUsernames = data.map(msg => ({
+          ...msg,
+          sender_username: profiles?.find(p => p.id === msg.sender_id)?.username
+        }))
+        
+        setMessages(messagesWithUsernames)
+      } else {
+        setMessages([])
+      }
     } catch (error) {
       console.error('Error loading group messages:', error)
     } finally {
@@ -346,50 +369,59 @@ export default function ChatWindow({ conversationId, currentUserId }: ChatWindow
               return (
                 <div
                   key={message.id}
-                  className={`flex ${isOwn ? 'justify-end' : 'justify-start'} group`}
+                  className={`flex ${isOwn ? 'justify-end' : 'justify-start'} group mb-1`}
                   onMouseEnter={() => setHoveredMessageId(message.id)}
                   onMouseLeave={() => setHoveredMessageId(null)}
                 >
-                  <div
-                    className={`relative max-w-xs lg:max-w-md px-4 py-2 rounded-2xl ${
-                      isOwn
-                        ? 'bg-blue-600 text-white rounded-br-sm'
-                        : 'bg-white text-gray-900 rounded-bl-sm shadow-sm'
-                    }`}
-                  >
-                    {/* Delete button - only show for own messages on hover */}
-                    {isOwn && hoveredMessageId === message.id && (
-                      <button
-                        onClick={() => handleDeleteMessage(message.id)}
-                        className="absolute -top-2 -right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600 transition shadow-lg"
-                      >
-                        <Trash2 className="w-3 h-3" />
-                      </button>
+                  <div className={`flex flex-col ${isOwn ? 'items-end' : 'items-start'} max-w-xs lg:max-w-md`}>
+                    {/* Show sender name for group messages (only for others' messages) */}
+                    {isGroup && !isOwn && (
+                      <p className="text-xs text-gray-500 mb-1 px-2">
+                        {(message as any).sender_username || 'Usuario'}
+                      </p>
                     )}
                     
-                    {message.image_url && (
-                      <div className="mb-2">
-                        <Image
-                          src={message.image_url}
-                          alt="Imagen compartida"
-                          width={250}
-                          height={250}
-                          className="rounded-lg object-cover"
-                        />
-                      </div>
-                    )}
-                    <p className="break-words">{message.content}</p>
-                    <p
-                      className={`text-xs mt-1 ${
-                        isOwn ? 'text-blue-100' : 'text-gray-500'
+                    <div
+                      className={`relative px-4 py-2 rounded-2xl ${
+                        isOwn
+                          ? 'bg-blue-600 text-white rounded-br-sm'
+                          : 'bg-white text-gray-900 rounded-bl-sm shadow-sm'
                       }`}
-                      suppressHydrationWarning
                     >
-                      {formatDistanceToNow(new Date(message.created_at), {
-                        addSuffix: true,
-                        locale: es,
-                      })}
-                    </p>
+                      {/* Delete button - only show for own messages on hover */}
+                      {isOwn && hoveredMessageId === message.id && (
+                        <button
+                          onClick={() => handleDeleteMessage(message.id)}
+                          className="absolute -top-2 -right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600 transition shadow-lg"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </button>
+                      )}
+                      
+                      {message.image_url && (
+                        <div className="mb-2">
+                          <Image
+                            src={message.image_url}
+                            alt="Imagen compartida"
+                            width={250}
+                            height={250}
+                            className="rounded-lg object-cover"
+                          />
+                        </div>
+                      )}
+                      <p className="break-words">{message.content}</p>
+                      <p
+                        className={`text-xs mt-1 ${
+                          isOwn ? 'text-blue-100' : 'text-gray-500'
+                        }`}
+                        suppressHydrationWarning
+                      >
+                        {formatDistanceToNow(new Date(message.created_at), {
+                          addSuffix: true,
+                          locale: es,
+                        })}
+                      </p>
+                    </div>
                   </div>
                 </div>
               )
