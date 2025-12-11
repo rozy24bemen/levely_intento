@@ -10,6 +10,7 @@ export default function CreateGroupModal({ isOpen, onClose, currentUserId }: { i
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<any[]>([])
   const [selected, setSelected] = useState<any[]>([])
+  const [groupName, setGroupName] = useState('')
   const [loading, setLoading] = useState(false)
   const [creating, setCreating] = useState(false)
   const supabase = createClient()
@@ -55,14 +56,17 @@ export default function CreateGroupModal({ isOpen, onClose, currentUserId }: { i
   }
 
   const handleCreate = async () => {
+    if (!groupName.trim()) {
+      alert('Por favor, ingresa un nombre para el grupo')
+      return
+    }
+    
     setCreating(true)
     try {
       const memberIds = selected.map(s => s.id)
-      // Create group name from usernames
-      const groupName = selected.map(s => s.username).join(', ')
       
       const { data, error } = await supabase.rpc('create_group', { 
-        p_name: groupName,
+        p_name: groupName.trim(),
         p_owner_id: currentUserId, 
         p_member_ids: memberIds 
       })
@@ -70,6 +74,10 @@ export default function CreateGroupModal({ isOpen, onClose, currentUserId }: { i
       if (error) throw error
       const groupId = data
       onClose()
+      setGroupName('')
+      setSelected([])
+      setQuery('')
+      setResults([])
       router.push(`/messages?chat=group-${groupId}`)
     } catch (err: any) {
       alert(err.message || 'Error creando el grupo')
@@ -93,14 +101,26 @@ export default function CreateGroupModal({ isOpen, onClose, currentUserId }: { i
 
           <p className="text-sm text-gray-500 mb-4">Selecciona hasta 2 usuarios para crear un grupo (máx 3 miembros).</p>
 
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-2">Nombre del grupo</label>
+            <input
+              value={groupName}
+              onChange={(e) => setGroupName(e.target.value)}
+              className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="Ej: Amigos, Familia, Trabajo..."
+              maxLength={50}
+            />
+          </div>
+
           <div className="relative mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-2">Agregar miembros</label>
             <input
               value={query}
               onChange={(e) => handleSearch(e.target.value)}
               className="w-full px-4 py-2 border border-gray-200 rounded-lg"
               placeholder="Buscar usuarios por nombre..."
             />
-            <div className="absolute right-3 top-2.5 text-gray-400"><Search className="w-5 h-5" /></div>
+            <div className="absolute right-3 top-10 text-gray-400"><Search className="w-5 h-5" /></div>
           </div>
 
           <div className="space-y-2 max-h-40 overflow-y-auto mb-4">
@@ -145,7 +165,13 @@ export default function CreateGroupModal({ isOpen, onClose, currentUserId }: { i
 
           <div className="flex justify-end gap-2">
             <button onClick={onClose} className="px-4 py-2 rounded-lg bg-gray-100">Cancelar</button>
-            <button disabled={creating || (selected.length < 1)} onClick={handleCreate} className="px-4 py-2 bg-blue-600 text-white rounded-lg disabled:opacity-50">{creating ? 'Creando...' : 'Crear Grupo'}</button>
+            <button 
+              disabled={creating || selected.length < 1 || !groupName.trim()} 
+              onClick={handleCreate} 
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {creating ? 'Creando...' : 'Crear Grupo'}
+            </button>
           </div>
         </div>
       </div>
