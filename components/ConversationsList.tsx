@@ -138,7 +138,61 @@ export default function ConversationsList({ currentUserId, selectedConversationI
         }
       })
 
-      setConversations(enrichedConversations)
+      // Also load group conversations where the current user is a member
+      const { data: groupMemberships } = await supabase
+        .from('group_members')
+        .select('group_id')
+        .eq('user_id', currentUserId)
+
+      let groupConvs: any[] = []
+      if (groupMemberships && groupMemberships.length > 0) {
+        const groupIds = groupMemberships.map((g: any) => g.group_id)
+
+        const { data: groups } = await supabase
+          .from('group_conversations')
+          .select('*')
+          .in('id', groupIds)
+          .order('last_message_at', { ascending: false })
+
+        if (groups && groups.length > 0) {
+          // Get last messages for groups
+          const { data: lastGroupMessages } = await supabase
+            .from('group_messages')
+            .select('*')
+            .in('group_id', groups.map((g: any) => g.id))
+            .order('created_at', { ascending: false })
+
+          // Get members for each group
+          const { data: members } = await supabase
+            .from('group_members')
+            .select('group_id, user_id')
+            .in('group_id', groups.map((g: any) => g.id))
+
+          // Load profiles of all members
+          const memberIds = Array.from(new Set(members?.map((m: any) => m.user_id)))
+          const { data: memberProfiles } = await supabase
+            .from('profiles')
+            .select('id, username, avatar_url, level')
+            .in('id', memberIds || [])
+
+          groupConvs = groups.map((g: any) => {
+            const lastMessage = lastGroupMessages?.find((m: any) => m.group_id === g.id)
+            const groupMembers = members?.filter((m: any) => m.group_id === g.id).map((m: any) => memberProfiles?.find((p: any) => p.id === m.user_id)) || []
+
+            return {
+              id: `group-${g.id}`,
+              is_group: true,
+              group_id: g.id,
+              name: g.name || null,
+              members: groupMembers,
+              last_message: lastMessage,
+            }
+          })
+        }
+      }
+
+      // Merge one-to-one conversations and groups
+      setConversations([...groupConvs, ...enrichedConversations])
     } catch (error) {
       console.error('Error loading conversations:', error)
     } finally {
@@ -172,6 +226,52 @@ export default function ConversationsList({ currentUserId, selectedConversationI
     <div className="divide-y divide-gray-100">
       {conversations.map((conversation) => {
         const isSelected = conversation.id === selectedConversationId
+        // If group conversation, render differently
+        if (conversation.is_group) {
+          const members = conversation.members || []
+          const title = conversation.name || members.map((m:any) => m?.username).filter(Boolean).join(', ')
+          return (
+            <button
+              key={conversation.id}
+              onClick={() => handleConversationClick(conversation.id)}
+              className={`w-full p-4 hover:bg-gray-50 transition text-left ${isSelected ? 'bg-blue-50 hover:bg-blue-50' : ''}`}
+            >
+              <div className="flex items-start gap-3">
+                <div className="flex -space-x-2">
+                  {members.slice(0,3).map((m:any, idx:number) => (
+                    <div key={m?.id || idx} className="w-10 h-10 rounded-full overflow-hidden border-2 border-white">
+                      {m?.avatar_url ? (
+                        <Image src={m.avatar_url} alt={m.username} width={40} height={40} className="object-cover" />
+                      ) : (
+                        <div className="w-full h-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold">
+                          {m?.username?.[0]?.toUpperCase()}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between mb-1">
+                    <h3 className="font-semibold text-gray-900 truncate">{title}</h3>
+                    {conversation.last_message && (
+                      <span className="text-xs text-gray-500 flex-shrink-0 ml-2" suppressHydrationWarning>
+                        {formatDistanceToNow(new Date(conversation.last_message.created_at), { addSuffix: true, locale: es })}
+                      </span>
+                    )}
+                  </div>
+
+                  {conversation.last_message && (
+                    <p className={`text-sm truncate ${conversation.unread_count && conversation.unread_count > 0 ? 'font-semibold text-gray-900' : 'text-gray-600'}`}>
+                      {conversation.last_message.content}
+                    </p>
+                  )}
+                </div>
+              </div>
+            </button>
+          )
+        }
+
         const otherUser = conversation.other_user
 
         if (!otherUser) return null

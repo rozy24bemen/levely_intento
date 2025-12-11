@@ -23,6 +23,8 @@ type UserProfile = {
 }
 
 export default function ChatWindow({ conversationId, currentUserId }: ChatWindowProps) {
+  const isGroup = conversationId.startsWith('group-')
+  const groupId = isGroup ? conversationId.replace(/^group-/, '') : null
   const [messages, setMessages] = useState<Message[]>([])
   const [newMessage, setNewMessage] = useState('')
   const [loading, setLoading] = useState(true)
@@ -39,75 +41,67 @@ export default function ChatWindow({ conversationId, currentUserId }: ChatWindow
   const supabase = createClient()
 
   useEffect(() => {
-    loadMessages()
-    loadOtherUser()
-    markMessagesAsRead()
-
-    // Subscribe to new messages and typing indicators
-    const channel = supabase
-      .channel(`messages-${conversationId}`, {
-        config: {
-          broadcast: { self: false },
-        },
-      })
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'messages',
-          filter: `conversation_id=eq.${conversationId}`,
-        },
-        (payload) => {
-          console.log('✉️ New message received via Realtime:', payload)
-          const newMsg = payload.new as Message
-          
-          // Always add message from Realtime (both sent and received)
-          setMessages((prev) => {
-            // Check if message already exists to avoid duplicates
-            const exists = prev.some(m => m.id === newMsg.id)
-            if (exists) {
-              console.log('⚠️ Message already exists, skipping')
-              return prev
-            }
-            console.log('✅ Adding message to chat')
-            return [...prev, newMsg]
-          })
-          
-          // Mark as read if it's received (not sent by current user)
-          if (newMsg.sender_id !== currentUserId && newMsg.receiver_id === currentUserId) {
-            console.log('📖 Marking message as read')
-            markMessagesAsRead()
-          }
-          
-          // Clear typing indicator when message arrives
-          setIsTyping(false)
-        }
-      )
-      .on('broadcast', { event: 'typing' }, (payload) => {
-        if (payload.payload.userId !== currentUserId) {
-          setIsTyping(true)
-          
-          // Clear typing indicator after 3 seconds
-          if (typingTimeoutRef.current) {
-            clearTimeout(typingTimeoutRef.current)
-          }
-          typingTimeoutRef.current = setTimeout(() => {
+    // Load messages and metadata depending on type
+    if (isGroup && groupId) {
+      loadGroupMessages()
+      loadGroupInfo()
+      // subscribe to group messages
+      const channel = supabase
+        .channel(`group-messages-${groupId}`)
+        .on(
+          'postgres_changes',
+          { event: 'INSERT', schema: 'public', table: 'group_messages', filter: `group_id=eq.${groupId}` },
+          (payload) => {
+            const newMsg = payload.new as any
+            setMessages((prev) => {
+              if (prev.some(m => m.id === newMsg.id)) return prev
+              return [...prev, newMsg]
+            })
             setIsTyping(false)
-          }, 3000)
-        }
-      })
-      .subscribe((status) => {
-        console.log('🔌 Realtime subscription status:', status)
-        if (status === 'SUBSCRIBED') {
-          console.log('✅ Successfully subscribed to messages')
-        }
-      })
+          }
+        )
+        .subscribe()
 
-    return () => {
-      supabase.removeChannel(channel)
-      if (typingTimeoutRef.current) {
-        clearTimeout(typingTimeoutRef.current)
+      return () => {
+        supabase.removeChannel(channel)
+      }
+    } else {
+      loadMessages()
+      loadOtherUser()
+      markMessagesAsRead()
+
+      // Subscribe to new messages and typing indicators
+      const channel = supabase
+        .channel(`messages-${conversationId}`, {
+          config: { broadcast: { self: false } },
+        })
+        .on(
+          'postgres_changes',
+          { event: 'INSERT', schema: 'public', table: 'messages', filter: `conversation_id=eq.${conversationId}` },
+          (payload) => {
+            const newMsg = payload.new as Message
+            setMessages((prev) => {
+              if (prev.some(m => m.id === newMsg.id)) return prev
+              return [...prev, newMsg]
+            })
+            if ((newMsg as any).sender_id !== currentUserId && (newMsg as any).receiver_id === currentUserId) {
+              markMessagesAsRead()
+            }
+            setIsTyping(false)
+          }
+        )
+        .on('broadcast', { event: 'typing' }, (payload) => {
+          if (payload.payload.userId !== currentUserId) {
+            setIsTyping(true)
+            if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current)
+            typingTimeoutRef.current = setTimeout(() => setIsTyping(false), 3000)
+          }
+        })
+        .subscribe()
+
+      return () => {
+        supabase.removeChannel(channel)
+        if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current)
       }
     }
   }, [conversationId, currentUserId])
@@ -122,28 +116,44 @@ export default function ChatWindow({ conversationId, currentUserId }: ChatWindow
 
   const loadOtherUser = async () => {
     try {
-      const { data: conversation } = await supabase
-        .from('conversations')
-        .select('participant1_id, participant2_id')
-        .eq('id', conversationId)
-        .single()
+      // For 1:1 conversations, load other user
+      if (!isGroup) {
+        const { data: conversation } = await supabase
+          .from('conversations')
+          .select('participant1_id, participant2_id')
+          .eq('id', conversationId)
+          .single()
 
-      if (!conversation) return
+        if (!conversation) return
 
-      const otherUserId =
-        conversation.participant1_id === currentUserId
-          ? conversation.participant2_id
-          : conversation.participant1_id
+        const otherUserId = conversation.participant1_id === currentUserId ? conversation.participant2_id : conversation.participant1_id
 
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('id, username, avatar_url, level')
-        .eq('id', otherUserId)
-        .single()
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('id, username, avatar_url, level')
+          .eq('id', otherUserId)
+          .single()
 
-      setOtherUser(profile)
+        setOtherUser(profile)
+      }
     } catch (error) {
       console.error('Error loading other user:', error)
+    }
+  }
+
+  const loadGroupInfo = async () => {
+    try {
+      if (!groupId) return
+      const { data: group } = await supabase.from('group_conversations').select('*').eq('id', groupId).single()
+      if (!group) return
+      // load members
+      const { data: members } = await supabase.from('group_members').select('user_id').eq('group_id', groupId)
+      const memberIds = members?.map((m:any) => m.user_id) || []
+      const { data: profiles } = await supabase.from('profiles').select('id, username, avatar_url, level').in('id', memberIds)
+      setOtherUser({ id: group.owner_id, username: group.name || '', avatar_url: null, level: 0 })
+      // store group members somewhere? we'll reuse otherUser for header username when group
+    } catch (err) {
+      console.error('Error loading group info:', err)
     }
   }
 
@@ -165,6 +175,19 @@ export default function ChatWindow({ conversationId, currentUserId }: ChatWindow
     }
   }
 
+  const loadGroupMessages = async () => {
+    try {
+      if (!groupId) return
+      const { data, error } = await supabase.from('group_messages').select('*').eq('group_id', groupId).order('created_at', { ascending: true })
+      if (error) throw error
+      setMessages(data || [])
+    } catch (error) {
+      console.error('Error loading group messages:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const markMessagesAsRead = async () => {
     try {
       await supabase
@@ -180,47 +203,40 @@ export default function ChatWindow({ conversationId, currentUserId }: ChatWindow
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault()
-    
     if (!newMessage.trim() || sending) return
 
     const messageContent = newMessage.trim()
     setSending(true)
-    setNewMessage('') // Clear input immediately for better UX
+    setNewMessage('')
 
     try {
-      // Get conversation participants
-      const { data: conversation } = await supabase
-        .from('conversations')
-        .select('participant1_id, participant2_id')
-        .eq('id', conversationId)
-        .single()
+      if (isGroup && groupId) {
+        // send via RPC
+        const { data, error } = await supabase.rpc('send_group_message', { g_id: groupId, sender: currentUserId, msg: messageContent })
+        if (error) throw error
+      } else {
+        // Get conversation participants
+        const { data: conversation } = await supabase
+          .from('conversations')
+          .select('participant1_id, participant2_id')
+          .eq('id', conversationId)
+          .single()
 
-      if (!conversation) throw new Error('Conversation not found')
+        if (!conversation) throw new Error('Conversation not found')
 
-      const receiverId =
-        conversation.participant1_id === currentUserId
-          ? conversation.participant2_id
-          : conversation.participant1_id
+        const receiverId = conversation.participant1_id === currentUserId ? conversation.participant2_id : conversation.participant1_id
 
-      console.log('📤 Sending message...')
-      const { data: insertedMessage, error } = await supabase
-        .from('messages')
-        .insert({
-          conversation_id: conversationId,
-          sender_id: currentUserId,
-          receiver_id: receiverId,
-          content: messageContent,
-        })
-        .select()
-        .single()
+        const { data: insertedMessage, error } = await supabase
+          .from('messages')
+          .insert({ conversation_id: conversationId, sender_id: currentUserId, receiver_id: receiverId, content: messageContent })
+          .select()
+          .single()
 
-      if (error) throw error
-
-      console.log('✅ Message sent successfully:', insertedMessage)
-      // Don't add to local state - let Realtime handle it
+        if (error) throw error
+      }
     } catch (error) {
       console.error('❌ Error sending message:', error)
-      setNewMessage(messageContent) // Restore message on error
+      setNewMessage(messageContent)
     } finally {
       setSending(false)
     }
@@ -270,39 +286,41 @@ export default function ChatWindow({ conversationId, currentUserId }: ChatWindow
   return (
     <div className="flex-1 flex flex-col">
       {/* Chat header */}
-      {otherUser && (
-        <div className="px-6 py-4 border-b border-gray-200 bg-white">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={handleBack}
-              className="md:hidden p-2 hover:bg-gray-100 rounded-lg transition"
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </button>
-            
-            <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0">
-              {otherUser.avatar_url ? (
-                <Image
-                  src={otherUser.avatar_url}
-                  alt={otherUser.username}
-                  width={40}
-                  height={40}
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <div className="w-full h-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold">
-                  {otherUser.username[0]?.toUpperCase()}
+      <div className="px-6 py-4 border-b border-gray-200 bg-white">
+        <div className="flex items-center gap-3">
+          <button onClick={handleBack} className="md:hidden p-2 hover:bg-gray-100 rounded-lg transition">
+            <ArrowLeft className="w-5 h-5" />
+          </button>
+
+          {/* For groups, show a group icon/list */}
+          {isGroup ? (
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold">G</div>
+              <div>
+                <h2 className="font-semibold text-gray-900">Grupo</h2>
+                <p className="text-xs text-gray-500">Chat grupal</p>
+              </div>
+            </div>
+          ) : (
+            otherUser && (
+              <>
+                <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0">
+                  {otherUser.avatar_url ? (
+                    <Image src={otherUser.avatar_url} alt={otherUser.username} width={40} height={40} className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold">{otherUser.username[0]?.toUpperCase()}</div>
+                  )}
                 </div>
-              )}
-            </div>
-            
-            <div>
-              <h2 className="font-semibold text-gray-900">{otherUser.username}</h2>
-              <p className="text-xs text-gray-500">Nivel {otherUser.level}</p>
-            </div>
-          </div>
+
+                <div>
+                  <h2 className="font-semibold text-gray-900">{otherUser.username}</h2>
+                  <p className="text-xs text-gray-500">Nivel {otherUser.level}</p>
+                </div>
+              </>
+            )
+          )}
         </div>
-      )}
+      </div>
 
       {/* Messages area */}
       <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-gray-50">

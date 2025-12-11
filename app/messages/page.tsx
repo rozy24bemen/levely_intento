@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/serverClient'
 import { redirect } from 'next/navigation'
 import ConversationsList from '@/components/ConversationsList'
 import ChatWindow from '@/components/ChatWindow'
+import CreateGroupButton from '@/components/CreateGroupButton'
 
 type MessagesPageProps = {
   searchParams: Promise<{ chat?: string }>
@@ -21,9 +22,13 @@ export default async function MessagesPage({ searchParams }: MessagesPageProps) 
   return (
     <main className="min-h-screen bg-gray-50">
       <div className="mx-auto max-w-7xl px-4 py-8">
-        <header className="mb-6">
-          <h1 className="text-3xl font-bold text-gray-900">Mensajes</h1>
-          <p className="text-gray-600">Chatea con otros usuarios de LEVELY</p>
+        {/* Header */}
+        <header className="mb-6 flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Mensajes</h1>
+            <p className="text-gray-600">Chatea con otros usuarios de LEVELY</p>
+          </div>
+          <CreateGroupButton currentUserId={user.id} />
         </header>
 
         <div className="bg-white rounded-lg shadow-sm overflow-hidden" style={{ height: 'calc(100vh - 220px)' }}>
