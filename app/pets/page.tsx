@@ -235,7 +235,7 @@ export default function PetsPage() {
         setSelectedFood(null);
         
         // Update mission progress (future feature)
-        updateMissionProgress('feed_pet', 1);
+        updateMissionProgress('feed_pet');
       }, 2000);
     }, 1500);
   };
