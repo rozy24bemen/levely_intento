@@ -5,6 +5,8 @@ import { createClient } from '@/lib/supabase/serverClient'
 import Navbar from '@/components/Navbar'
 import XPNotificationContainer from '@/components/XPNotifications'
 import MessageNotifications from '@/components/MessageNotifications'
+import { PetProvider } from '@/contexts/PetContext'
+import FloatingPet from '@/components/FloatingPet'
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -44,10 +46,13 @@ export default async function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <Navbar user={user} profile={profile} />
-        {children}
-        <XPNotificationContainer />
-        {user && <MessageNotifications userId={user.id} />}
+        <PetProvider>
+          <Navbar user={user} profile={profile} />
+          {children}
+          <XPNotificationContainer />
+          {user && <MessageNotifications userId={user.id} />}
+          <FloatingPet />
+        </PetProvider>
       </body>
     </html>
   );
