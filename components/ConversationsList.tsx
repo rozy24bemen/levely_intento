@@ -237,8 +237,8 @@ export default function ConversationsList({ currentUserId, selectedConversationI
     <div className="divide-y divide-gray-100">
       {conversations.map((conversation) => {
         const isSelected = conversation.id === selectedConversationId
-        // If group conversation, render differently
-        if (conversation.is_group) {
+        // If group conversation, render differently (type-guard)
+        if ("is_group" in conversation && conversation.is_group) {
           const members = conversation.members || []
           const title = conversation.name || members.map((m:any) => m?.username).filter(Boolean).join(', ')
           return (
