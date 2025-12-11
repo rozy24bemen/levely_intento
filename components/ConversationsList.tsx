@@ -183,20 +183,25 @@ export default function ConversationsList({ currentUserId, selectedConversationI
       })
 
       // Also load group conversations where the current user is a member
-      const { data: groupMemberships } = await supabase
+      const { data: groupMemberships, error: groupMembersError } = await supabase
         .from('group_members')
         .select('group_id')
         .eq('user_id', currentUserId)
 
+      console.log('🔍 Group memberships:', groupMemberships, 'Error:', groupMembersError)
+
       let groupConvs: any[] = []
       if (groupMemberships && groupMemberships.length > 0) {
         const groupIds = groupMemberships.map((g: any) => g.group_id)
+        console.log('📋 Group IDs:', groupIds)
 
-        const { data: groups } = await supabase
+        const { data: groups, error: groupsError } = await supabase
           .from('groups')
           .select('*')
           .in('id', groupIds)
           .order('created_at', { ascending: false })
+
+        console.log('👥 Groups loaded:', groups, 'Error:', groupsError)
 
         if (groups && groups.length > 0) {
           // Get last messages for groups

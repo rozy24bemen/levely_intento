@@ -64,6 +64,7 @@ export default function CreateGroupModal({ isOpen, onClose, currentUserId }: { i
     setCreating(true)
     try {
       const memberIds = selected.map(s => s.id)
+      console.log('🎯 Creating group:', groupName.trim(), 'Owner:', currentUserId, 'Members:', memberIds)
       
       const { data, error } = await supabase.rpc('create_group', { 
         p_name: groupName.trim(),
@@ -71,8 +72,17 @@ export default function CreateGroupModal({ isOpen, onClose, currentUserId }: { i
         p_member_ids: memberIds 
       })
       
+      console.log('✅ Group created:', data, 'Error:', error)
       if (error) throw error
       const groupId = data
+      
+      // Verificar que se crearon los miembros
+      const { data: members, error: membersError } = await supabase
+        .from('group_members')
+        .select('*')
+        .eq('group_id', groupId)
+      
+      console.log('👥 Group members after creation:', members, 'Error:', membersError)
       onClose()
       setGroupName('')
       setSelected([])
