@@ -51,11 +51,24 @@ export default function ChatWindow({ conversationId, currentUserId }: ChatWindow
         .on(
           'postgres_changes',
           { event: 'INSERT', schema: 'public', table: 'group_messages', filter: `group_id=eq.${groupId}` },
-          (payload) => {
+          async (payload) => {
             const newMsg = payload.new as any
+            
+            // Load sender profile info
+            const { data: senderProfile } = await supabase
+              .from('profiles')
+              .select('id, username')
+              .eq('id', newMsg.sender_id)
+              .single()
+            
+            const enrichedMsg = {
+              ...newMsg,
+              sender_username: senderProfile?.username
+            }
+            
             setMessages((prev) => {
               if (prev.some(m => m.id === newMsg.id)) return prev
-              return [...prev, newMsg]
+              return [...prev, enrichedMsg]
             })
             setIsTyping(false)
           }
